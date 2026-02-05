@@ -4,7 +4,7 @@ import 'api_service.dart';
 
 class TransactionProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
-  
+
   List<Transaction> _transactions = [];
   List<Transaction> get transactions => _transactions;
   bool _isLoading = false;
@@ -26,6 +26,54 @@ class TransactionProvider with ChangeNotifier {
         .fold(0.0, (sum, item) => sum + item.amount);
   }
 
+  // Monthly totals (default to current month)
+  double monthlyIncome({DateTime? forMonth}) {
+    final month = forMonth ?? DateTime.now();
+    return _transactions
+        .where((tx) => tx.type == TransactionType.income)
+        .where(
+          (tx) => tx.date.year == month.year && tx.date.month == month.month,
+        )
+        .fold(0.0, (sum, item) => sum + item.amount);
+  }
+
+  double monthlyExpense({DateTime? forMonth}) {
+    final month = forMonth ?? DateTime.now();
+    return _transactions
+        .where((tx) => tx.type == TransactionType.expense)
+        .where(
+          (tx) => tx.date.year == month.year && tx.date.month == month.month,
+        )
+        .fold(0.0, (sum, item) => sum + item.amount);
+  }
+
+  // Daily totals (default to today)
+  double dailyIncome({DateTime? forDay}) {
+    final day = forDay ?? DateTime.now();
+    return _transactions
+        .where((tx) => tx.type == TransactionType.income)
+        .where(
+          (tx) =>
+              tx.date.year == day.year &&
+              tx.date.month == day.month &&
+              tx.date.day == day.day,
+        )
+        .fold(0.0, (sum, item) => sum + item.amount);
+  }
+
+  double dailyExpense({DateTime? forDay}) {
+    final day = forDay ?? DateTime.now();
+    return _transactions
+        .where((tx) => tx.type == TransactionType.expense)
+        .where(
+          (tx) =>
+              tx.date.year == day.year &&
+              tx.date.month == day.month &&
+              tx.date.day == day.day,
+        )
+        .fold(0.0, (sum, item) => sum + item.amount);
+  }
+
   // Filters
   TransactionType? _typeFilter;
   TransactionType? get typeFilter => _typeFilter;
@@ -40,13 +88,15 @@ class TransactionProvider with ChangeNotifier {
     notifyListeners();
     try {
       final allTransactions = await _apiService.getTransactions();
-      
+
       if (_typeFilter != null) {
-        _transactions = allTransactions.where((tx) => tx.type == _typeFilter).toList();
+        _transactions = allTransactions
+            .where((tx) => tx.type == _typeFilter)
+            .toList();
       } else {
         _transactions = allTransactions;
       }
-      
+
       // Sort by date descending
       _transactions.sort((a, b) => b.date.compareTo(a.date));
     } catch (e) {
@@ -62,11 +112,16 @@ class TransactionProvider with ChangeNotifier {
     await fetchTransactions();
   }
 
+  Future<void> updateTransaction(Transaction transaction) async {
+    await _apiService.updateTransaction(transaction);
+    await fetchTransactions();
+  }
+
   Future<void> deleteTransaction(Transaction transaction) async {
     await _apiService.deleteTransaction(transaction.id);
     await fetchTransactions();
   }
-  
+
   Future<void> resetData() async {
     // Ideally call API to delete all, but for safety implementing delete one by one
     // or just assume this feature might be restricted server side.
@@ -81,7 +136,7 @@ class TransactionProvider with ChangeNotifier {
     _typeFilter = type;
     fetchTransactions();
   }
-  
+
   List<Transaction> getRecentTransactions(int count) {
     return _transactions.take(count).toList();
   }

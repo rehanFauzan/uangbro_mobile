@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test</title>
+</head>
+<body>
+    <h2>Test Transaction API</h2>
+    <form action="transaction_api.php" method="POST">
+        <input type="hidden" name="id" value="<?php echo 'TXN' . time(); ?>">
+        <input type="hidden" name="type" value="expense">
+        <input type="hidden" name="amount" value="25000">
+        <input type="hidden" name="category" value="Food">
+        <input type="hidden" name="description" value="Test transaction">
+        <input type="hidden" name="date" value="2024-01-15">
+        <button type="submit">Add Transaction</button>
+    </form>
+</body>
+</html>

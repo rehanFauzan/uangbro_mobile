@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Transaction API</title>
+</head>
+<body>
+    <h2>Test Add Transaction</h2>
+    <button onclick="testAddTransaction()">Test Add Transaction</button>
+    <div id="result"></div>
+
+    <script>
+    function testAddTransaction() {
+        const transaction = {
+            id: 'TXN' + Date.now(),
+            type: 'expense',
+            amount: 50000,
+            category: 'Food',
+            description: 'Makan siang',
+            date: '2024-01-15'
+        };
+
+        fetch('transaction_api.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(transaction)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+            return response.text();
+        })
+        .then(text => {
+            try {
+                const data = JSON.parse(text);
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (e) {
+                document.getElementById('result').innerHTML = 'Response: ' + text;
+            }
+        })
+        .catch(error => {
+            document.getElementById('result').innerHTML = 'Error: ' + error;
+        });
+    }
+    </script>
+</body>
+</html>

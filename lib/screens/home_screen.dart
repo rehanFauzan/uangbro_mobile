@@ -11,9 +11,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Dashboard"),
-      ),
+      appBar: AppBar(title: const Text("Dashboard")),
       body: Consumer<TransactionProvider>(
         builder: (context, provider, child) {
           return ListView(
@@ -22,15 +20,15 @@ class HomeScreen extends StatelessWidget {
               // Balance Card
               _buildBalanceCard(context, provider),
               const SizedBox(height: 16),
-              
-              // Income & Expense Row
+
+              // Monthly Income & Expense Row (Bulan ini)
               Row(
                 children: [
                   Expanded(
                     child: _buildSummaryCard(
                       context,
-                      "Pemasukan",
-                      provider.totalIncome,
+                      "Pemasukan (Bulan ini)",
+                      provider.monthlyIncome(),
                       Colors.green,
                       Icons.arrow_downward,
                     ),
@@ -39,8 +37,34 @@ class HomeScreen extends StatelessWidget {
                   Expanded(
                     child: _buildSummaryCard(
                       context,
-                      "Pengeluaran",
-                      provider.totalExpense,
+                      "Pengeluaran (Bulan ini)",
+                      provider.monthlyExpense(),
+                      Colors.red,
+                      Icons.arrow_upward,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Today's small summaries (compact, not full cards)
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSmallSummaryCard(
+                      context,
+                      "Pemasukan (Hari ini)",
+                      provider.dailyIncome(),
+                      Colors.green,
+                      Icons.arrow_downward,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSmallSummaryCard(
+                      context,
+                      "Pengeluaran (Hari ini)",
+                      provider.dailyExpense(),
                       Colors.red,
                       Icons.arrow_upward,
                     ),
@@ -48,7 +72,7 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              
+
               // Recent Transactions Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -63,7 +87,7 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              
+
               // Recent Transactions List
               ..._buildRecentTransactions(context, provider),
             ],
@@ -124,9 +148,12 @@ class HomeScreen extends StatelessWidget {
               children: [
                 Icon(icon, color: color, size: 20),
                 const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.bodySmall,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.bodySmall,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -144,20 +171,67 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildSmallSummaryCard(
+    BuildContext context,
+    String title,
+    double amount,
+    Color color,
+    IconData icon,
+  ) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.bodySmall,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    CurrencyFormatter.format(amount),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   List<Widget> _buildRecentTransactions(
     BuildContext context,
     TransactionProvider provider,
   ) {
     final recent = provider.getRecentTransactions(5);
-    
+
     if (recent.isEmpty) {
       return [
         const Padding(
           padding: EdgeInsets.all(16),
-          child: Center(
-            child: Text("Belum ada transaksi"),
-          ),
-        )
+          child: Center(child: Text("Belum ada transaksi")),
+        ),
       ];
     }
 
@@ -180,8 +254,10 @@ class HomeScreen extends StatelessWidget {
           ),
           title: Text(tx.category), // Or description?
           subtitle: Text(
-            tx.description.isNotEmpty ? tx.description : DateFormat('dd MMM yyyy').format(tx.date),
-             style: Theme.of(context).textTheme.bodySmall,
+            tx.description.isNotEmpty
+                ? tx.description
+                : DateFormat('dd MMM yyyy').format(tx.date),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
           trailing: Text(
             CurrencyFormatter.format(tx.amount),

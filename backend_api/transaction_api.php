@@ -19,10 +19,10 @@ switch ($method) {
         // Get all transactions
         $sql = "SELECT * FROM transactions ORDER BY date DESC";
         $result = $conn->query($sql);
-        
+
         $transactions = array();
         if ($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
+            while ($row = $result->fetch_assoc()) {
                 $transactions[] = $row;
             }
         }
@@ -30,27 +30,48 @@ switch ($method) {
         break;
 
     case 'POST':
-        // Add new transaction
-        $data = json_decode(file_get_contents("php://input"), true);
-        
-        if(isset($data['id']) && isset($data['amount'])) {
+        // Add new transaction or update existing one
+        $input = file_get_contents("php://input");
+        $data = json_decode($input, true);
+
+        // If JSON decode fails, try form data
+        if (!$data) {
+            $data = $_POST;
+        }
+
+        if (isset($data['id']) && isset($data['amount']) && isset($data['type']) && isset($data['category']) && isset($data['date'])) {
             $id = $conn->real_escape_string($data['id']);
             $type = $conn->real_escape_string($data['type']);
-            $amount = $data['amount'];
+            $amount = floatval($data['amount']);
             $category = $conn->real_escape_string($data['category']);
-            $description = $conn->real_escape_string($data['description']);
+            $description = isset($data['description']) ? $conn->real_escape_string($data['description']) : '';
             $date = $conn->real_escape_string($data['date']);
 
-            $sql = "INSERT INTO transactions (id, type, amount, category, description, date) 
-                    VALUES ('$id', '$type', '$amount', '$category', '$description', '$date')";
+            // Check if transaction with this ID already exists
+            $checkSql = "SELECT id FROM transactions WHERE id='$id' LIMIT 1";
+            $checkResult = $conn->query($checkSql);
 
-            if ($conn->query($sql) === TRUE) {
-                echo json_encode(array("message" => "Transaction created", "status" => "success"));
+            if ($checkResult && $checkResult->num_rows > 0) {
+                // Update existing
+                $sql = "UPDATE transactions SET type='$type', amount=$amount, category='$category', description='$description', date='$date' WHERE id='$id'";
+                if ($conn->query($sql) === TRUE) {
+                    echo json_encode(array("message" => "Transaction berhasil diupdate", "status" => "success", "id" => $id));
+                } else {
+                    echo json_encode(array("message" => "Error updating: " . $conn->error, "status" => "error"));
+                }
             } else {
-                echo json_encode(array("message" => "Error: " . $sql . "<br>" . $conn->error, "status" => "error"));
+                // Insert new
+                $sql = "INSERT INTO transactions (id, type, amount, category, description, date) 
+                        VALUES ('$id', '$type', $amount, '$category', '$description', '$date')";
+
+                if ($conn->query($sql) === TRUE) {
+                    echo json_encode(array("message" => "Transaction berhasil ditambahkan", "status" => "success", "id" => $id));
+                } else {
+                    echo json_encode(array("message" => "Error: " . $conn->error, "status" => "error"));
+                }
             }
         } else {
-            echo json_encode(array("message" => "Incomplete data", "status" => "error"));
+            echo json_encode(array("message" => "Data tidak lengkap", "received" => $data, "status" => "error"));
         }
         break;
 
@@ -69,7 +90,7 @@ switch ($method) {
             echo json_encode(array("message" => "ID needed", "status" => "error"));
         }
         break;
-        
+
     default:
         // OPTIONS or other methods
         http_response_code(200);
@@ -77,4 +98,3 @@ switch ($method) {
 }
 
 $conn->close();
-?>

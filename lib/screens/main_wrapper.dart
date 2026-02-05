@@ -15,20 +15,27 @@ class MainWrapper extends StatefulWidget {
 class _MainWrapperState extends State<MainWrapper> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    AddTransactionScreen(),
-    HistoryScreen(),
-    ProfileScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
+    final List<Widget> screens = [
+      const HomeScreen(),
+      AddTransactionScreen(
+        onSaved: () {
+          // Switch back to Home tab and show confirmation
+          setState(() {
+            _selectedIndex = 0;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Transaksi berhasil disimpan')),
+          );
+        },
       ),
+      const HistoryScreen(),
+      const ProfileScreen(),
+    ];
+
+    return Scaffold(
+      body: IndexedStack(index: _selectedIndex, children: screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {

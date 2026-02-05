@@ -29,7 +29,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  "Pengguna",
+                  "Raihan",
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 Text(
