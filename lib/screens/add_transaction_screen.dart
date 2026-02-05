@@ -5,11 +5,13 @@ import 'transaction_form.dart';
 class AddTransactionScreen extends StatelessWidget {
   final Transaction? existingTransaction;
   final VoidCallback? onSaved;
+  final TransactionType? initialType;
 
   const AddTransactionScreen({
     super.key,
     this.existingTransaction,
     this.onSaved,
+    this.initialType,
   });
 
   @override
@@ -21,6 +23,7 @@ class AddTransactionScreen extends StatelessWidget {
       ),
       body: TransactionForm(
         existingTransaction: existingTransaction,
+        initialType: initialType,
         onSaved: onSaved,
       ),
     );

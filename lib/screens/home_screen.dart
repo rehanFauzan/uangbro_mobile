@@ -161,6 +161,7 @@ class HomeScreen extends StatelessWidget {
                                   ),
                                 );
                               },
+                              initialType: TransactionType.income,
                             ),
                           ),
                         );
@@ -194,6 +195,7 @@ class HomeScreen extends StatelessWidget {
                                 );
                               },
                               existingTransaction: null,
+                              initialType: TransactionType.expense,
                             ),
                           ),
                         );

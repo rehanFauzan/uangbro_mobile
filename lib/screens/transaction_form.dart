@@ -9,12 +9,14 @@ class TransactionForm extends StatefulWidget {
   final Transaction? existingTransaction;
   final bool shrinkWrap; // if true, will not pop the parent route on save
   final VoidCallback? onSaved;
+  final TransactionType? initialType;
 
   const TransactionForm({
     super.key,
     this.existingTransaction,
     this.shrinkWrap = false,
     this.onSaved,
+    this.initialType,
   });
 
   @override
@@ -42,6 +44,8 @@ class _TransactionFormState extends State<TransactionForm> {
       _descriptionController.text = existing.description;
       _selectedCategory = existing.category;
       _selectedDate = existing.date;
+    } else if (widget.initialType != null) {
+      _selectedType = widget.initialType!;
     } else {
       _selectedType = TransactionType.expense;
     }
