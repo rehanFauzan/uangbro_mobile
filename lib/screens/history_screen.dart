@@ -305,12 +305,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         padding: EdgeInsets.only(
                           bottom: MediaQuery.of(ctx).viewInsets.bottom,
                         ),
-                        child: TransactionForm(existingTransaction: tx),
+                        child: TransactionForm(
+                          existingTransaction: tx,
+                          shrinkWrap: true,
+                          onSaved: () async {
+                            // Close the bottom sheet and refresh transactions
+                            if (Navigator.of(ctx).canPop())
+                              Navigator.of(ctx).pop();
+                            await provider.fetchTransactions();
+                          },
+                        ),
                       ),
                     );
-
-                    // After return, refresh list
-                    await provider.fetchTransactions();
                   } else if (value == 'delete') {
                     final confirmed = await showDialog<bool>(
                       context: context,

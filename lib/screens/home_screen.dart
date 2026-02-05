@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
+
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/transaction_provider.dart';
 import '../utils/currency_formatter.dart';
 import '../models/transaction_model.dart';
+import '../utils/design_tokens.dart';
+import 'add_transaction_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -11,7 +15,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Dashboard")),
+      appBar: AppBar(title: const Text("UangBro")),
       body: Consumer<TransactionProvider>(
         builder: (context, provider, child) {
           return ListView(
@@ -83,7 +87,6 @@ class HomeScreen extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  // Optional: "See All" button could go here
                 ],
               ),
               const SizedBox(height: 8),
@@ -98,32 +101,120 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildBalanceCard(BuildContext context, TransactionProvider provider) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Theme.of(context).colorScheme.primary,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Total Saldo",
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
-                fontSize: 14,
-              ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: DesignTokens.primary.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: DesignTokens.neutralLow.withOpacity(0.06),
             ),
-            const SizedBox(height: 8),
-            Text(
-              CurrencyFormatter.format(provider.totalBalance),
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimary,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.18),
+                blurRadius: 8,
+                offset: const Offset(0, 6),
               ),
-            ),
-          ],
+            ],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Total Saldo",
+                style: TextStyle(
+                  color: DesignTokens.neutralHigh.withOpacity(0.95),
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                CurrencyFormatter.format(provider.totalBalance),
+                style: TextStyle(
+                  color: DesignTokens.neutralHigh,
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Quick actions
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => AddTransactionScreen(
+                              onSaved: () {
+                                // When saved, pop and show confirmation
+                                Navigator.of(context).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Transaksi berhasil disimpan',
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.arrow_downward),
+                      label: const Text('Tambah Pemasukan'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: DesignTokens.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => AddTransactionScreen(
+                              onSaved: () {
+                                Navigator.of(context).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Transaksi berhasil disimpan',
+                                    ),
+                                  ),
+                                );
+                              },
+                              existingTransaction: null,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.arrow_upward),
+                      label: const Text('Tambah Pengeluaran'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: DesignTokens.neutralHigh,
+                        side: BorderSide(
+                          color: DesignTokens.neutralLow.withOpacity(0.2),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -137,10 +228,11 @@ class HomeScreen extends StatelessWidget {
     IconData icon,
   ) {
     return Card(
-      elevation: 2,
+      elevation: 0,
+      color: DesignTokens.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -151,7 +243,9 @@ class HomeScreen extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: DesignTokens.neutralLow,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -178,44 +272,46 @@ class HomeScreen extends StatelessWidget {
     Color color,
     IconData icon,
   ) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: color, size: 18),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      decoration: BoxDecoration(
+        color: DesignTokens.surface,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.bodySmall,
-                    overflow: TextOverflow.ellipsis,
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: DesignTokens.neutralLow,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    CurrencyFormatter.format(amount),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  CurrencyFormatter.format(amount),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: color,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -240,15 +336,15 @@ class HomeScreen extends StatelessWidget {
       return Card(
         margin: const EdgeInsets.only(bottom: 8),
         elevation: 0,
-        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+        color: DesignTokens.surface,
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor: isExpense
-                ? Colors.red.withOpacity(0.1)
-                : Colors.green.withOpacity(0.1),
+                ? DesignTokens.danger.withOpacity(0.08)
+                : DesignTokens.success.withOpacity(0.08),
             child: Icon(
               isExpense ? Icons.arrow_upward : Icons.arrow_downward,
-              color: isExpense ? Colors.red : Colors.green,
+              color: isExpense ? DesignTokens.danger : DesignTokens.success,
               size: 20,
             ),
           ),
@@ -262,7 +358,7 @@ class HomeScreen extends StatelessWidget {
           trailing: Text(
             CurrencyFormatter.format(tx.amount),
             style: TextStyle(
-              color: isExpense ? Colors.red : Colors.green,
+              color: isExpense ? DesignTokens.danger : DesignTokens.success,
               fontWeight: FontWeight.bold,
             ),
           ),

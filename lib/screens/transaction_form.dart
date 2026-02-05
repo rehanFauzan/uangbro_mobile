@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/transaction_model.dart';
 import '../services/transaction_provider.dart';
+import '../services/category_provider.dart';
 
 class TransactionForm extends StatefulWidget {
   final Transaction? existingTransaction;
@@ -29,23 +30,7 @@ class _TransactionFormState extends State<TransactionForm> {
   String? _selectedCategory;
   DateTime _selectedDate = DateTime.now();
 
-  final List<String> _expenseCategories = [
-    'Makan',
-    'Transport',
-    'Belanja',
-    'Tagihan',
-    'Hiburan',
-    'Kesehatan',
-    'Lainnya',
-  ];
-
-  final List<String> _incomeCategories = [
-    'Gaji',
-    'Bonus',
-    'Hadiah',
-    'Investasi',
-    'Lainnya',
-  ];
+  // Categories are provided by CategoryProvider (persisted with Hive)
 
   @override
   void initState() {
@@ -166,9 +151,26 @@ class _TransactionFormState extends State<TransactionForm> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = _selectedType == TransactionType.expense
-        ? _expenseCategories
-        : _incomeCategories;
+    final catProvider = Provider.of<CategoryProvider>(context);
+    final providerCategories = catProvider.categories;
+
+    // Fallback defaults if provider has no categories
+    final defaultExpense = [
+      'Makan',
+      'Transport',
+      'Belanja',
+      'Tagihan',
+      'Hiburan',
+      'Kesehatan',
+      'Lainnya',
+    ];
+    final defaultIncome = ['Gaji', 'Bonus', 'Hadiah', 'Investasi', 'Lainnya'];
+
+    final categories = providerCategories.isNotEmpty
+        ? providerCategories
+        : (_selectedType == TransactionType.expense
+              ? defaultExpense
+              : defaultIncome);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
