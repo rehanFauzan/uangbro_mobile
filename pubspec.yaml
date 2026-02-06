@@ -50,6 +50,7 @@ dependencies:
   fl_chart: ^0.66.2
   cupertino_icons: ^1.0.8
   flutter_secure_storage: ^8.0.0
+  image_picker: ^0.8.7+5
 
 dev_dependencies:
   flutter_test:

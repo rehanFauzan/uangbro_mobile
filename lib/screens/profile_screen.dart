@@ -1,13 +1,168 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 import '../services/transaction_provider.dart';
 import '../screens/categories_screen.dart';
 import '../screens/analytics_screen.dart';
 import '../services/api_service.dart';
 import 'login_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final ApiService _api = ApiService();
+  String? _username;
+  String? _email;
+  String? _photoUrl;
+  Uint8List? _photoBytes; // Store photo as bytes
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final u = await _api.getUsername();
+    final e = await _api.getEmail();
+    final p = await _api.getProfilePhoto();
+    print('DEBUG: Username: $u, Email: $e, PhotoURL: $p'); // Debug
+    
+    // Try to load photo from URL
+    Uint8List? bytes;
+    if (p != null && p.isNotEmpty) {
+      try {
+        final response = await http.get(Uri.parse(p));
+        if (response.statusCode == 200) {
+          bytes = response.bodyBytes;
+          print('DEBUG: Photo loaded successfully, size: ${bytes.length} bytes');
+        } else {
+          print('DEBUG: Failed to load photo, status: ${response.statusCode}');
+        }
+      } catch (e) {
+        print('DEBUG: Error loading photo: $e');
+      }
+    }
+    
+    if (!mounted) return;
+    setState(() {
+      _username = u ?? 'Pengguna';
+      _email = e;
+      _photoUrl = p;
+      _photoBytes = bytes;
+    });
+  }
+
+  Future<void> _editProfile() async {
+    final usernameCtrl = TextEditingController(text: _username);
+    Uint8List? pickedBytes;
+    final picker = ImagePicker();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Edit Profile', style: Theme.of(ctx).textTheme.titleMedium),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: usernameCtrl,
+                  decoration: const InputDecoration(labelText: 'Username'),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final xfile = await picker.pickImage(
+                          source: ImageSource.gallery,
+                          maxWidth: 800,
+                          maxHeight: 800,
+                          imageQuality: 80,
+                        );
+                        if (xfile != null) {
+                          pickedBytes = await xfile.readAsBytes();
+                          setModalState(() {});
+                        }
+                      },
+                      icon: const Icon(Icons.photo_library),
+                      label: const Text('Pilih Foto'),
+                    ),
+                    const SizedBox(width: 12),
+                    if (pickedBytes != null)
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          image: DecorationImage(
+                            fit: BoxFit.cover,
+                            image: MemoryImage(pickedBytes!),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('Batal'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final newName = usernameCtrl.text.trim();
+                          Navigator.of(ctx).pop();
+                          final res = await _api.updateProfile(
+                            newName,
+                            pickedBytes,
+                          );
+                          if (!mounted) return;
+                          if (res['status'] == 'success') {
+                            await _loadProfile();
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Profile diperbarui')),
+                            );
+                          } else {
+                            final msg =
+                                res['message'] ?? 'Gagal memperbarui profile';
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text(msg)));
+                          }
+                        },
+                        child: const Text('Simpan'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    usernameCtrl.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,47 +173,67 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 20),
           // User Profile Header (load username and email from secure storage)
           Center(
-            child: FutureBuilder<List<String?>>(
-              future: Future.wait([
-                ApiService().getUsername(),
-                ApiService().getEmail(),
-              ]),
-              builder: (context, snap) {
-                final username = (snap.data != null && snap.data!.isNotEmpty)
-                    ? (snap.data![0] ?? 'Pengguna')
-                    : 'Pengguna';
-                final email = (snap.data != null && snap.data!.length > 1)
-                    ? snap.data![1]
-                    : null;
-                return Column(
+            child: Column(
+              children: [
+                Stack(
+                  alignment: Alignment.bottomRight,
                   children: [
                     CircleAvatar(
                       radius: 50,
                       backgroundColor: Theme.of(
                         context,
                       ).colorScheme.primaryContainer,
-                      child: Icon(
-                        Icons.person,
-                        size: 50,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      backgroundImage: _photoBytes != null
+                          ? MemoryImage(_photoBytes!)
+                          : null,
+                      child: _photoBytes == null
+                          ? Icon(
+                              Icons.person,
+                              size: 50,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimaryContainer,
+                            )
+                          : null,
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: GestureDetector(
+                        onTap: _editProfile,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withAlpha(20),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.edit, size: 18),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      username,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    Text(
-                      email ?? '$username@uangbro.app',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                    ),
                   ],
-                );
-              },
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _username ?? 'Pengguna',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                Text(
+                  _email ?? '${_username ?? 'pengguna'}@uangbro.app',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 40),
           const SizedBox(height: 40),
 
           // Settings Section

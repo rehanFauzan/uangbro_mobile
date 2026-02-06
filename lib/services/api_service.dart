@@ -42,6 +42,7 @@ class ApiService {
     await _storage.delete(key: 'api_token');
     await _storage.delete(key: 'username');
     await _storage.delete(key: 'email');
+    await _storage.delete(key: 'profile_photo');
   }
 
   Future<String?> getUsername() async {
@@ -50,6 +51,10 @@ class ApiService {
 
   Future<String?> getEmail() async {
     return await _storage.read(key: 'email');
+  }
+
+  Future<String?> getProfilePhoto() async {
+    return await _storage.read(key: 'profile_photo');
   }
 
   Future<List<Transaction>> getTransactions() async {
@@ -192,6 +197,41 @@ class ApiService {
     );
     if (resp.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(resp.body);
+      return data;
+    }
+    return {'status': 'error', 'message': 'HTTP ${resp.statusCode}'};
+  }
+
+  /// Update profile: username and optional image bytes (raw). Image will be sent as base64.
+  Future<Map<String, dynamic>> updateProfile(
+    String username,
+    List<int>? imageBytes,
+  ) async {
+    final url = Uri.parse(
+      'http://$_backendHost:$_backendPort/update_profile.php',
+    );
+    final headers = await _authHeaders();
+    final body = <String, dynamic>{'username': username};
+    if (imageBytes != null && imageBytes.isNotEmpty) {
+      final b64 = base64.encode(imageBytes);
+      body['image_base64'] = b64;
+    }
+    final resp = await http.post(
+      url,
+      headers: headers,
+      body: json.encode(body),
+    );
+    if (resp.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(resp.body);
+      if (data['status'] == 'success') {
+        if (data['username'] != null)
+          await _storage.write(key: 'username', value: data['username']);
+        if (data['profile_photo'] != null)
+          await _storage.write(
+            key: 'profile_photo',
+            value: data['profile_photo'],
+          );
+      }
       return data;
     }
     return {'status': 'error', 'message': 'HTTP ${resp.statusCode}'};
