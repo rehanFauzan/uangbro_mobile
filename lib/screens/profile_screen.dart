@@ -452,122 +452,242 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Ubah Password'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: usernameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Username',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: newPassCtrl,
-                obscureText: obscureNewPass,
-                decoration: InputDecoration(
-                  labelText: 'Password Baru',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscureNewPass
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        obscureNewPass = !obscureNewPass;
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: confirmPassCtrl,
-                obscureText: obscureConfirmPass,
-                decoration: InputDecoration(
-                  labelText: 'Konfirmasi Password',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscureConfirmPass
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        obscureConfirmPass = !obscureConfirmPass;
-                      });
-                    },
-                  ),
-                ),
-              ),
-            ],
+        builder: (context, setState) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final username = usernameCtrl.text.trim();
-                final newPass = newPassCtrl.text;
-                final confirmPass = confirmPassCtrl.text;
-
-                if (username.isEmpty ||
-                    newPass.isEmpty ||
-                    confirmPass.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Semua field wajib diisi')),
-                  );
-                  return;
-                }
-
-                if (newPass.length < 6) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Password minimal 6 karakter'),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            width: MediaQuery.of(context).size.width * 0.85,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with icon
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.blue.withAlpha(30),
+                  ),
+                  child: const Icon(
+                    Icons.lock_reset,
+                    size: 40,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Ubah Password',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Masukkan username dan password baru Anda',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                // Username field
+                TextField(
+                  controller: usernameCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Username',
+                    prefixIcon: const Icon(
+                      Icons.person_outline,
+                      color: Colors.blue,
                     ),
-                  );
-                  return;
-                }
-
-                if (newPass != confirmPass) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Password tidak cocok')),
-                  );
-                  return;
-                }
-
-                Navigator.of(ctx).pop();
-                final messenger = ScaffoldMessenger.of(context);
-                final result = await _api.resetPassword(username, newPass);
-                if (result['status'] == 'success') {
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        result['message'] ?? 'Password berhasil diubah',
+                    filled: true,
+                    fillColor: Colors.grey.withAlpha(20),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // New password field
+                TextField(
+                  controller: newPassCtrl,
+                  obscureText: obscureNewPass,
+                  decoration: InputDecoration(
+                    labelText: 'Password Baru',
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      color: Colors.blue,
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureNewPass
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          obscureNewPass = !obscureNewPass;
+                        });
+                      },
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.withAlpha(20),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Confirm password field
+                TextField(
+                  controller: confirmPassCtrl,
+                  obscureText: obscureConfirmPass,
+                  decoration: InputDecoration(
+                    labelText: 'Konfirmasi Password',
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      color: Colors.blue,
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureConfirmPass
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          obscureConfirmPass = !obscureConfirmPass;
+                        });
+                      },
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.withAlpha(20),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(color: Colors.grey),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Batal',
+                          style: TextStyle(fontSize: 16),
+                        ),
                       ),
                     ),
-                  );
-                } else {
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        result['message'] ?? 'Gagal mengubah password',
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final username = usernameCtrl.text.trim();
+                          final newPass = newPassCtrl.text;
+                          final confirmPass = confirmPassCtrl.text;
+
+                          if (username.isEmpty ||
+                              newPass.isEmpty ||
+                              confirmPass.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Semua field wajib diisi'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (newPass.length < 6) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Password minimal 6 karakter'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (newPass != confirmPass) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Password tidak cocok'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          Navigator.of(ctx).pop();
+                          final messenger = ScaffoldMessenger.of(context);
+                          final result = await _api.resetPassword(
+                            username,
+                            newPass,
+                          );
+                          if (result['status'] == 'success') {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  result['message'] ??
+                                      'Password berhasil diubah',
+                                ),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } else {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  result['message'] ??
+                                      'Gagal mengubah password',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: const Text(
+                          'Simpan',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                  );
-                }
-              },
-              child: const Text('Simpan'),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

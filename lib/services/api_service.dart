@@ -238,4 +238,20 @@ class ApiService {
     }
     return {'status': 'error', 'message': 'HTTP ${resp.statusCode}'};
   }
+
+  Future<Map<String, dynamic>> forgotPassword(String username) async {
+    final url = Uri.parse(
+      'http://$_backendHost:$_backendPort/forgot_password.php',
+    );
+    final resp = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'username': username, 'action': 'request'}),
+    );
+    if (resp.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(resp.body);
+      return data;
+    }
+    return {'status': 'error', 'message': 'HTTP ${resp.statusCode}'};
+  }
 }

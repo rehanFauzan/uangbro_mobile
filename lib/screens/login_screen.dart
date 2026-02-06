@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../utils/design_tokens.dart';
 import '../services/api_service.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 import 'main_wrapper.dart';
 import 'package:provider/provider.dart';
 import '../services/transaction_provider.dart';
@@ -204,6 +205,26 @@ class _LoginScreenState extends State<LoginScreen> {
                           validator: (v) => v == null || v.isEmpty
                               ? 'Masukkan password'
                               : null,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ForgotPasswordScreen(),
+                                ),
+                              ),
+                              child: Text(
+                                'Lupa password?',
+                                style: TextStyle(
+                                  color: DesignTokens.primary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 18),
                         SizedBox(
