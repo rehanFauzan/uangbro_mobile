@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Backend</title>
+</head>
+<body>
+    <h2>Test Backend Connection</h2>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testRegister()">Test Register</button>
+    <div id="result"></div>
+
+    <script>
+    function testLogin() {
+        fetch('http://localhost:8000/login.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: 'test', password: 'test123'})
+        })
+        .then(r => r.text())
+        .then(text => {
+            document.getElementById('result').innerHTML = '<h3>Login Response:</h3><pre>' + text + '</pre>';
+        })
+        .catch(e => {
+            document.getElementById('result').innerHTML = '<h3>Error:</h3><pre>' + e + '</pre>';
+        });
+    }
+
+    function testRegister() {
+        fetch('http://localhost:8000/register.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: 'test', password: 'test123', email: 'test@test.com'})
+        })
+        .then(r => r.text())
+        .then(text => {
+            document.getElementById('result').innerHTML = '<h3>Register Response:</h3><pre>' + text + '</pre>';
+        })
+        .catch(e => {
+            document.getElementById('result').innerHTML = '<h3>Error:</h3><pre>' + e + '</pre>';
+        });
+    }
+    </script>
+</body>
+</html>
