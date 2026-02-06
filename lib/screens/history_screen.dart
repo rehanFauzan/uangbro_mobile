@@ -309,9 +309,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           existingTransaction: tx,
                           shrinkWrap: true,
                           onSaved: () async {
-                            // Close the bottom sheet and refresh transactions
-                            if (Navigator.of(ctx).canPop())
-                              Navigator.of(ctx).pop();
+                            // Parent will refresh after the sheet is closed
                             await provider.fetchTransactions();
                           },
                         ),

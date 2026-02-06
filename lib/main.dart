@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'services/transaction_provider.dart';
 import 'services/category_provider.dart';
 import 'screens/main_wrapper.dart';
+import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,7 +71,7 @@ class MyApp extends StatelessWidget {
       ),
       // Use the dark theme by default
       themeMode: ThemeMode.dark,
-      home: const MainWrapper(),
+      home: const SplashScreen(),
     );
   }
 }

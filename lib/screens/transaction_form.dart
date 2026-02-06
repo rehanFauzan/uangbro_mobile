@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../utils/design_tokens.dart';
 import '../models/transaction_model.dart';
 import '../services/transaction_provider.dart';
 import '../services/category_provider.dart';
@@ -42,7 +43,7 @@ class _TransactionFormState extends State<TransactionForm> {
       _selectedType = existing.type;
       _amountController.text = existing.amount.toString();
       _descriptionController.text = existing.description;
-      _selectedCategory = existing.category;
+      _selectedCategory = existing.category.trim();
       _selectedDate = existing.date;
     } else if (widget.initialType != null) {
       _selectedType = widget.initialType!;
@@ -135,9 +136,14 @@ class _TransactionFormState extends State<TransactionForm> {
           widget.onSaved!();
         }
 
-        // Close the current route only when not shrinkWrapped and no onSaved callback was provided
+        // Close the current route when appropriate:
+        // - if not shrinkWrapped and no onSaved callback provided, close normally
+        // - if shrinkWrapped (used inside bottom sheet), also close the sheet here
         if (!widget.shrinkWrap && widget.onSaved == null) {
           Navigator.of(context).pop();
+        } else if (widget.shrinkWrap) {
+          // Close the bottom sheet / dialog that contains this form
+          if (Navigator.of(context).canPop()) Navigator.of(context).pop();
         }
       }
     } catch (error) {
@@ -170,135 +176,214 @@ class _TransactionFormState extends State<TransactionForm> {
     ];
     final defaultIncome = ['Gaji', 'Bonus', 'Hadiah', 'Investasi', 'Lainnya'];
 
-    final categories = providerCategories.isNotEmpty
+    final categoriesRaw = providerCategories.isNotEmpty
         ? providerCategories
         : (_selectedType == TransactionType.expense
               ? defaultExpense
               : defaultIncome);
+    // Order-preserving dedupe: keep first occurrence and drop later duplicates.
+    final seen = <String>{};
+    final categories = <String>[];
+    for (final c in categoriesRaw) {
+      final normalized = c.trim();
+      if (normalized.isEmpty) continue;
+      if (seen.add(normalized)) categories.add(normalized);
+    }
+    // Normalize selected category and ensure it's present
+    final selectedNormalized = _selectedCategory?.trim();
+    if (selectedNormalized != null &&
+        selectedNormalized.isNotEmpty &&
+        !categories.contains(selectedNormalized)) {
+      categories.insert(0, selectedNormalized);
+      _selectedCategory = selectedNormalized; // keep state normalized
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Form(
         key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Type Selector
-            SegmentedButton<TransactionType>(
-              segments: const [
-                ButtonSegment(
-                  value: TransactionType.expense,
-                  label: Text("Pengeluaran"),
-                  icon: Icon(Icons.arrow_upward),
-                ),
-                ButtonSegment(
-                  value: TransactionType.income,
-                  label: Text("Pemasukan"),
-                  icon: Icon(Icons.arrow_downward),
-                ),
-              ],
-              selected: {_selectedType},
-              onSelectionChanged: (Set<TransactionType> newSelection) {
-                setState(() {
-                  _selectedType = newSelection.first;
-                  _selectedCategory = null; // Reset category on type change
-                });
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Amount Input
-            TextFormField(
-              controller: _amountController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: "Nominal",
-                border: OutlineInputBorder(
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: DesignTokens.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Type Selector
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: DesignTokens.bg.withOpacity(0.03),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                prefixText: "Rp ",
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Masukkan nominal';
-                }
-                if (double.tryParse(value) == null) {
-                  return 'Masukkan angka yang valid';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Category Dropdown
-            DropdownButtonFormField<String>(
-              value: _selectedCategory,
-              decoration: InputDecoration(
-                labelText: "Kategori",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                child: SegmentedButton<TransactionType>(
+                  segments: const [
+                    ButtonSegment(
+                      value: TransactionType.expense,
+                      label: Text("Pengeluaran"),
+                      icon: Icon(Icons.arrow_upward),
+                    ),
+                    ButtonSegment(
+                      value: TransactionType.income,
+                      label: Text("Pemasukan"),
+                      icon: Icon(Icons.arrow_downward),
+                    ),
+                  ],
+                  selected: {_selectedType},
+                  onSelectionChanged: (Set<TransactionType> newSelection) {
+                    setState(() {
+                      _selectedType = newSelection.first;
+                      _selectedCategory = null; // Reset category on type change
+                    });
+                  },
                 ),
               ),
-              items: categories.map((category) {
-                return DropdownMenuItem(value: category, child: Text(category));
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedCategory = value;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
-            // Description Input
-            TextFormField(
-              controller: _descriptionController,
-              decoration: InputDecoration(
-                labelText: "Deskripsi (Opsional)",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+              // Amount Input
+              TextFormField(
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Date Picker
-            InkWell(
-              onTap: _presentDatePicker,
-              borderRadius: BorderRadius.circular(12),
-              child: InputDecorator(
                 decoration: InputDecoration(
-                  labelText: "Tanggal",
+                  prefixIcon: const Padding(
+                    padding: EdgeInsets.only(left: 12, right: 8),
+                    child: Icon(Icons.attach_money),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 48),
+                  labelText: "Nominal",
+                  filled: true,
+                  fillColor: DesignTokens.bg.withOpacity(0.03),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
                   ),
-                  suffixIcon: const Icon(Icons.calendar_today),
+                  hintText: "0",
                 ),
-                child: Text(
-                  DateFormat('dd MMMM yyyy', 'id_ID').format(_selectedDate),
-                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Masukkan nominal';
+                  }
+                  if (double.tryParse(value) == null) {
+                    return 'Masukkan angka yang valid';
+                  }
+                  return null;
+                },
               ),
-            ),
-            const SizedBox(height: 32),
+              const SizedBox(height: 14),
 
-            // Save Button
-            FilledButton(
-              onPressed: _submitData,
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+              // Category Dropdown
+              DropdownButtonFormField<String>(
+                // use initialValue to avoid deprecated 'value' usage and ensure
+                // the dropdown has the matching selected item
+                initialValue: _selectedCategory?.trim(),
+                decoration: InputDecoration(
+                  labelText: "Kategori",
+                  filled: true,
+                  fillColor: DesignTokens.bg.withOpacity(0.02),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                items: categories.map((category) {
+                  return DropdownMenuItem(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCategory = value?.trim();
+                  });
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // Description Input
+              TextFormField(
+                controller: _descriptionController,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.note),
+                  labelText: "Deskripsi (Opsional)",
+                  filled: true,
+                  fillColor: DesignTokens.bg.withOpacity(0.02),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
-              child: Text(
-                widget.existingTransaction != null
-                    ? "Update Transaksi"
-                    : "Simpan Transaksi",
+              const SizedBox(height: 14),
+
+              // Date Picker
+              InkWell(
+                onTap: _presentDatePicker,
+                borderRadius: BorderRadius.circular(12),
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: "Tanggal",
+                    filled: true,
+                    fillColor: DesignTokens.bg.withOpacity(0.02),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    suffixIcon: const Icon(Icons.calendar_today),
+                  ),
+                  child: Text(
+                    DateFormat('dd MMMM yyyy', 'id_ID').format(_selectedDate),
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-          ],
+              const SizedBox(height: 22),
+
+              // Save Button (gradient)
+              Material(
+                color: Colors.transparent,
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: DesignTokens.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: _submitData,
+                    child: SizedBox(
+                      height: 52,
+                      child: Center(
+                        child: Text(
+                          widget.existingTransaction != null
+                              ? "Update Transaksi"
+                              : "Simpan Transaksi",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
