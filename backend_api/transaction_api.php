@@ -63,14 +63,22 @@ switch ($method) {
         break;
 
     case 'POST':
+<<<<<<< HEAD
         // Add new transaction or update existing one
         $input = file_get_contents("php://input");
         $data = json_decode($input, true);
 
+=======
+        // Add new transaction
+        $input = file_get_contents("php://input");
+        $data = json_decode($input, true);
+        
+>>>>>>> 7bd071f (profile pict)
         // If JSON decode fails, try form data
         if (!$data) {
             $data = $_POST;
         }
+<<<<<<< HEAD
 
         if (isset($data['id']) && isset($data['amount']) && isset($data['type']) && isset($data['category']) && isset($data['date'])) {
             // Authenticate (case-insensitive header lookup)
@@ -100,6 +108,10 @@ switch ($method) {
                 }
             }
 
+=======
+        
+        if(isset($data['id']) && isset($data['amount']) && isset($data['type']) && isset($data['category']) && isset($data['date'])) {
+>>>>>>> 7bd071f (profile pict)
             $id = $conn->real_escape_string($data['id']);
             $type = $conn->real_escape_string($data['type']);
             $amount = floatval($data['amount']);
@@ -107,6 +119,7 @@ switch ($method) {
             $description = isset($data['description']) ? $conn->real_escape_string($data['description']) : '';
             $date = $conn->real_escape_string($data['date']);
 
+<<<<<<< HEAD
             // Check if transaction with this ID already exists
             $checkSql = "SELECT id, user_id FROM transactions WHERE id='$id' LIMIT 1";
             $checkResult = $conn->query($checkSql);
@@ -146,6 +159,15 @@ switch ($method) {
                 } else {
                     echo json_encode(array("message" => "Error: " . $conn->error, "status" => "error"));
                 }
+=======
+            $sql = "INSERT INTO transactions (id, type, amount, category, description, date) 
+                    VALUES ('$id', '$type', $amount, '$category', '$description', '$date')";
+
+            if ($conn->query($sql) === TRUE) {
+                echo json_encode(array("message" => "Transaction berhasil ditambahkan", "status" => "success", "id" => $id));
+            } else {
+                echo json_encode(array("message" => "Error: " . $conn->error, "status" => "error"));
+>>>>>>> 7bd071f (profile pict)
             }
         } else {
             echo json_encode(array("message" => "Data tidak lengkap", "received" => $data, "status" => "error"));

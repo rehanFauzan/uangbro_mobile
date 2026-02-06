@@ -6,22 +6,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/transaction_model.dart';
 
 class ApiService {
-  // Use localhost for Web/iOS, 10.0.2.2 for Android Emulator
-  // Recommended local backend URL configuration:
-  // - Run the PHP backend with: php -S localhost:8000 -t backend_api
-  // - Android emulator should use 10.0.2.2 to reach host machine
-  // - iOS simulator / web can use localhost
-  // For a physical device, replace with your machine IP (e.g., 192.168.1.x:8000)
   static const String _backendHost = 'localhost';
-  static const int _backendPort = 8080;
+  static const int _backendPort = 8000;
   static const String _backendPath = 'transaction_api.php';
 
   static String get baseUrl {
-    const host = kIsWeb ? _backendHost : _backendHost;
-    // Use 10.0.2.2 for Android emulator when running on emulator
-    // We can't detect Android emulator from here reliably without platform checks,
-    // so Android devs should prefer editing this constant or using their local IP.
-    // However, for common emulator case change host manually to 10.0.2.2 if needed.
+    final host = kIsWeb ? _backendHost : _backendHost;
     return 'http://$host:$_backendPort/$_backendPath';
   }
 
@@ -90,8 +80,6 @@ class ApiService {
     }
   }
 
-  /// Update an existing transaction. Backend accepts POST with same payload
-  /// and will perform update when ID already exists.
   Future<void> updateTransaction(Transaction transaction) async {
     try {
       final headers = await _authHeaders();
@@ -125,7 +113,6 @@ class ApiService {
     }
   }
 
-  // Authentication endpoints
   Future<String?> login(String username, String password) async {
     final url = Uri.parse('http://$_backendHost:$_backendPort/login.php');
     final resp = await http.post(
@@ -138,7 +125,6 @@ class ApiService {
       if (data['status'] == 'success' && data['api_token'] != null) {
         final token = data['api_token'];
         await _storage.write(key: 'api_token', value: token);
-        // store username if returned by backend
         if (data['username'] != null) {
           await _storage.write(key: 'username', value: data['username']);
         }
@@ -183,8 +169,6 @@ class ApiService {
     return null;
   }
 
-  /// Claims a list of legacy transaction IDs. Returns the decoded response map
-  /// with keys like `status` and `message` from the backend.
   Future<Map<String, dynamic>> claimTransactions(List<String> ids) async {
     final url = Uri.parse(
       'http://$_backendHost:$_backendPort/claim_transactions.php',
@@ -202,7 +186,6 @@ class ApiService {
     return {'status': 'error', 'message': 'HTTP ${resp.statusCode}'};
   }
 
-  /// Update profile: username and optional image bytes (raw). Image will be sent as base64.
   Future<Map<String, dynamic>> updateProfile(
     String username,
     List<int>? imageBytes,
