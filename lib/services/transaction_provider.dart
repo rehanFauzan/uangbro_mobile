@@ -112,7 +112,8 @@ class TransactionProvider with ChangeNotifier {
       // Sort by date descending
       _transactions.sort((a, b) => b.date.compareTo(a.date));
     } catch (e) {
-      print("Error fetching transactions: $e");
+      // use debugPrint instead of print for better logging control
+      debugPrint("Error fetching transactions: $e");
     } finally {
       _isLoading = false;
       notifyListeners();

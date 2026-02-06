@@ -16,7 +16,7 @@ class ApiService {
   static const String _backendPath = 'transaction_api.php';
 
   static String get baseUrl {
-    final host = kIsWeb ? _backendHost : _backendHost;
+    const host = kIsWeb ? _backendHost : _backendHost;
     // Use 10.0.2.2 for Android emulator when running on emulator
     // We can't detect Android emulator from here reliably without platform checks,
     // so Android devs should prefer editing this constant or using their local IP.

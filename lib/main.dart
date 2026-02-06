@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'services/transaction_provider.dart';
 import 'services/category_provider.dart';
-import 'screens/main_wrapper.dart';
 import 'screens/splash_screen.dart';
 
 void main() async {

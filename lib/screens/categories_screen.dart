@@ -38,7 +38,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               final name = _controller.text.trim();
               if (name.isNotEmpty) {
                 await provider.addCategory(name);
-                Navigator.of(ctx).pop();
+                if (mounted) Navigator.of(context).pop();
               }
             },
             child: const Text('Simpan'),
@@ -72,7 +72,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               final name = _controller.text.trim();
               if (name.isNotEmpty) {
                 await provider.updateCategory(index, name);
-                Navigator.of(ctx).pop();
+                if (mounted) Navigator.of(context).pop();
               }
             },
             child: const Text('Simpan'),

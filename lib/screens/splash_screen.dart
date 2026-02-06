@@ -99,7 +99,7 @@ class _SplashScreenState extends State<SplashScreen>
     final theme = Theme.of(context);
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [DesignTokens.bg, DesignTokens.surface],
             begin: Alignment.topLeft,
@@ -116,11 +116,12 @@ class _SplashScreenState extends State<SplashScreen>
                   duration: const Duration(milliseconds: 450),
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(_revealed ? 0.06 : 0.03),
+                        // compute alpha dynamically to replace deprecated withOpacity
+                        color: Colors.white.withAlpha(((_revealed ? 0.06 : 0.03) * 255).round()),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.12),
+                            color: Colors.black.withAlpha((0.12 * 255).round()),
                         blurRadius: 12,
                         offset: const Offset(0, 6),
                       ),
@@ -133,7 +134,7 @@ class _SplashScreenState extends State<SplashScreen>
                       Container(
                         width: 48,
                         height: 48,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: DesignTokens.primaryGradient,
                         ),
@@ -166,7 +167,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: LinearProgressIndicator(
                   value: null,
                   color: DesignTokens.primary,
-                  backgroundColor: Colors.white.withOpacity(0.06),
+                    backgroundColor: Colors.white.withAlpha((0.06 * 255).round()),
                 ),
               ),
             ],

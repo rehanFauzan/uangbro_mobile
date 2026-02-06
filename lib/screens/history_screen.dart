@@ -5,6 +5,9 @@ import '../models/transaction_model.dart';
 import '../services/transaction_provider.dart';
 import 'transaction_form.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/design_tokens.dart';
+
+enum PeriodPreset { week, month, threeMonths, sixMonths, year, custom }
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -17,6 +20,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _sortOption =
       'date_desc'; // date_desc, date_asc, amount_desc, amount_asc
+  PeriodPreset _selectedPreset = PeriodPreset.month;
+  DateTimeRange? _customRange;
 
   @override
   void dispose() {
@@ -49,6 +54,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ],
           ),
+
+          // Period selector
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 4.0,
+            ),
+            child: _buildPeriodSelector(context),
+          ),
         ],
       ),
       body: Column(
@@ -70,6 +84,217 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 isDense: true,
               ),
               onChanged: (v) => setState(() {}),
+            ),
+          ),
+
+          // Comparison card (current period vs previous)
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: Consumer<TransactionProvider>(
+              builder: (ctx, provider, _) {
+                final range = _rangeForPreset(_selectedPreset);
+                final currentExpense = provider.transactions
+                    .where(
+                      (tx) =>
+                          !tx.date.isBefore(range.start) &&
+                          !tx.date.isAfter(range.end),
+                    )
+                    .where((t) => t.type == TransactionType.expense)
+                    .fold(0.0, (s, t) => s + t.amount);
+
+                final prevRange = DateTimeRange(
+                  start: range.start.subtract(
+                    Duration(
+                      days: range.end.difference(range.start).inDays + 1,
+                    ),
+                  ),
+                  end: range.start.subtract(const Duration(days: 1)),
+                );
+
+                final previousExpense = provider.transactions
+                    .where(
+                      (tx) =>
+                          !tx.date.isBefore(prevRange.start) &&
+                          !tx.date.isAfter(prevRange.end),
+                    )
+                    .where((t) => t.type == TransactionType.expense)
+                    .fold(0.0, (s, t) => s + t.amount);
+
+                final diff = currentExpense - previousExpense;
+                final pct = previousExpense > 0
+                    ? (diff / previousExpense * 100)
+                    : (currentExpense > 0 ? 100.0 : 0.0);
+                final up = diff >= 0;
+
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    // surfaceContainerHighest.withOpacity deprecated; use withAlpha
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withAlpha((0.12 * 255).round()),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Perbandingan periode',
+                            style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withAlpha((0.7 * 255).round()),
+                                    ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Pengeluaran ${_labelForPreset(_selectedPreset)}: ${CurrencyFormatter.format(currentExpense)}',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Dibandingkan ${_previousLabelForPreset(_selectedPreset)}: ${CurrencyFormatter.format(previousExpense)}',
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withAlpha((0.7 * 255).round()),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Icon(
+                            up ? Icons.trending_up : Icons.trending_down,
+                            color: up ? Colors.green : Colors.red,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${pct.abs().toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              color: up ? Colors.green : Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Top categories (under comparison)
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: Consumer<TransactionProvider>(
+              builder: (ctx, provider, _) {
+                final range = _rangeForPreset(_selectedPreset);
+                final filtered = provider.transactions
+                    .where(
+                      (tx) =>
+                          !tx.date.isBefore(range.start) &&
+                          !tx.date.isAfter(range.end),
+                    )
+                    .where((t) => t.type == TransactionType.expense)
+                    .toList();
+                final Map<String, double> totals = {};
+                for (var tx in filtered) {
+                  totals[tx.category] = (totals[tx.category] ?? 0) + tx.amount;
+                }
+                final entries = totals.entries.toList()
+                  ..sort((a, b) => b.value.compareTo(a.value));
+                final maxVal = entries.isNotEmpty ? entries.first.value : 1.0;
+
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    // Slight background tint using alpha instead of withOpacity
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withAlpha((0.06 * 255).round()),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Top kategori (pengeluaran)',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      if (entries.isEmpty)
+                        const Text('Tidak ada pengeluaran di periode ini'),
+                      for (
+                        var i = 0;
+                        i < (entries.length < 5 ? entries.length : 5);
+                        i++
+                      )
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  entries[i].key,
+                                  style: const TextStyle(
+                                    color: DesignTokens.neutralHigh,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 5,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: LinearProgressIndicator(
+                                    value: maxVal > 0
+                                        ? entries[i].value / maxVal
+                                        : 0,
+                                    valueColor: const AlwaysStoppedAnimation(
+                                      DesignTokens.primary,
+                                    ),
+                  backgroundColor: DesignTokens.bg
+                    .withAlpha((0.08 * 255).round()),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                CurrencyFormatter.format(entries[i].value),
+                                style: const TextStyle(
+                                  color: DesignTokens.neutralLow,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
 
@@ -126,6 +351,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       tx.description.toLowerCase().contains(query) ||
                       amountStr.contains(query) ||
                       dateStr.contains(query);
+                }).toList();
+
+                // Apply date range filter
+                final range = _rangeForPreset(_selectedPreset);
+                displayed = displayed.where((tx) {
+                  final d = tx.date;
+                  return !d.isBefore(range.start) && !d.isAfter(range.end);
                 }).toList();
 
                 // Sort according to option
@@ -199,6 +431,123 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  DateTimeRange _rangeForPreset(PeriodPreset preset) {
+    final now = DateTime.now();
+    switch (preset) {
+      case PeriodPreset.week:
+        final start = now.subtract(Duration(days: now.weekday - 1));
+        return DateTimeRange(
+          start: DateTime(start.year, start.month, start.day),
+          end: now,
+        );
+      case PeriodPreset.month:
+        return DateTimeRange(start: DateTime(now.year, now.month, 1), end: now);
+      case PeriodPreset.threeMonths:
+        return DateTimeRange(
+          start: DateTime(now.year, now.month - 2, 1),
+          end: now,
+        );
+      case PeriodPreset.sixMonths:
+        return DateTimeRange(
+          start: DateTime(now.year, now.month - 5, 1),
+          end: now,
+        );
+      case PeriodPreset.year:
+        return DateTimeRange(start: DateTime(now.year, 1, 1), end: now);
+      case PeriodPreset.custom:
+        return _customRange ??
+            DateTimeRange(start: DateTime(now.year, now.month, 1), end: now);
+    }
+  }
+
+  Widget _buildPeriodSelector(BuildContext context) {
+    return Row(
+      children: [
+        for (var p in PeriodPreset.values)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _selectedPreset == p
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.surface,
+                  foregroundColor: _selectedPreset == p
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : Theme.of(context).colorScheme.onSurface,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                ),
+                onPressed: () async {
+                  if (p == PeriodPreset.custom) {
+                    final picked = await showDateRangePicker(
+                      context: context,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                      initialDateRange: _customRange,
+                      builder: (ctx, child) => Theme(
+                        data: Theme.of(
+                          context,
+                        ).copyWith(colorScheme: const ColorScheme.dark()),
+                        child: child!,
+                      ),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _customRange = picked;
+                        _selectedPreset = p;
+                      });
+                    }
+                  } else {
+                    setState(() {
+                      _selectedPreset = p;
+                    });
+                  }
+                },
+                child: Text(
+                  _labelForPreset(p),
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _labelForPreset(PeriodPreset p) {
+    switch (p) {
+      case PeriodPreset.week:
+        return 'Minggu Ini';
+      case PeriodPreset.month:
+        return 'Bulan Ini';
+      case PeriodPreset.threeMonths:
+        return '3 Bulan';
+      case PeriodPreset.sixMonths:
+        return '6 Bulan';
+      case PeriodPreset.year:
+        return 'Tahun Ini';
+      case PeriodPreset.custom:
+        return 'Custom';
+    }
+  }
+
+  String _previousLabelForPreset(PeriodPreset p) {
+    switch (p) {
+      case PeriodPreset.week:
+        return 'minggu lalu';
+      case PeriodPreset.month:
+        return 'bulan lalu';
+      case PeriodPreset.threeMonths:
+        return '3 bulan sebelumnya';
+      case PeriodPreset.sixMonths:
+        return '6 bulan sebelumnya';
+      case PeriodPreset.year:
+        return 'tahun lalu';
+      case PeriodPreset.custom:
+        return 'periode sebelumnya';
+    }
+  }
+
   Widget _buildTransactionItem(
     BuildContext context,
     TransactionProvider provider,
@@ -256,15 +605,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
           );
         }
       },
-      child: Card(
+        child: Card(
         margin: const EdgeInsets.only(bottom: 8),
         elevation: 0,
-        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withAlpha((0.3 * 255).round()),
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor: isExpense
-                ? Colors.red.withOpacity(0.1)
-                : Colors.green.withOpacity(0.1),
+                ? Colors.red.withAlpha((0.1 * 255).round())
+                : Colors.green.withAlpha((0.1 * 255).round()),
             child: Icon(
               isExpense ? Icons.arrow_upward : Icons.arrow_downward,
               color: isExpense ? Colors.red : Colors.green,

@@ -209,7 +209,7 @@ class _TransactionFormState extends State<TransactionForm> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.12),
+                color: Colors.black.withAlpha((0.12 * 255).round()),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -223,7 +223,7 @@ class _TransactionFormState extends State<TransactionForm> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: DesignTokens.bg.withOpacity(0.03),
+                  color: DesignTokens.bg.withAlpha((0.03 * 255).round()),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: SegmentedButton<TransactionType>(
@@ -266,7 +266,7 @@ class _TransactionFormState extends State<TransactionForm> {
                   prefixIconConstraints: const BoxConstraints(minWidth: 48),
                   labelText: "Nominal",
                   filled: true,
-                  fillColor: DesignTokens.bg.withOpacity(0.03),
+                  fillColor: DesignTokens.bg.withAlpha((0.03 * 255).round()),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -293,7 +293,7 @@ class _TransactionFormState extends State<TransactionForm> {
                 decoration: InputDecoration(
                   labelText: "Kategori",
                   filled: true,
-                  fillColor: DesignTokens.bg.withOpacity(0.02),
+                  fillColor: DesignTokens.bg.withAlpha((0.02 * 255).round()),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -320,7 +320,7 @@ class _TransactionFormState extends State<TransactionForm> {
                   prefixIcon: const Icon(Icons.note),
                   labelText: "Deskripsi (Opsional)",
                   filled: true,
-                  fillColor: DesignTokens.bg.withOpacity(0.02),
+                  fillColor: DesignTokens.bg.withAlpha((0.02 * 255).round()),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -337,7 +337,7 @@ class _TransactionFormState extends State<TransactionForm> {
                   decoration: InputDecoration(
                     labelText: "Tanggal",
                     filled: true,
-                    fillColor: DesignTokens.bg.withOpacity(0.02),
+                    fillColor: DesignTokens.bg.withAlpha((0.02 * 255).round()),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,

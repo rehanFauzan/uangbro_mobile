@@ -3,7 +3,6 @@ import 'home_screen.dart';
 import 'add_transaction_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
-import 'package:cupertino_icons/cupertino_icons.dart';
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});

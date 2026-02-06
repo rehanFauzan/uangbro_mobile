@@ -107,14 +107,14 @@ class HomeScreen extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           decoration: BoxDecoration(
-            color: DesignTokens.primary.withOpacity(0.12),
+              color: DesignTokens.primary.withAlpha((0.12 * 255).round()),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: DesignTokens.neutralLow.withOpacity(0.06),
+                color: DesignTokens.neutralLow.withAlpha((0.06 * 255).round()),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.18),
+                  color: Colors.black.withAlpha((0.18 * 255).round()),
                 blurRadius: 8,
                 offset: const Offset(0, 6),
               ),
@@ -127,14 +127,14 @@ class HomeScreen extends StatelessWidget {
               Text(
                 "Total Saldo",
                 style: TextStyle(
-                  color: DesignTokens.neutralHigh.withOpacity(0.95),
+                  color: DesignTokens.neutralHigh.withAlpha((0.95 * 255).round()),
                   fontSize: 13,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 CurrencyFormatter.format(provider.totalBalance),
-                style: TextStyle(
+                style: const TextStyle(
                   color: DesignTokens.neutralHigh,
                   fontSize: 34,
                   fontWeight: FontWeight.bold,
@@ -205,7 +205,7 @@ class HomeScreen extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: DesignTokens.neutralHigh,
                         side: BorderSide(
-                          color: DesignTokens.neutralLow.withOpacity(0.2),
+                          color: DesignTokens.neutralLow.withAlpha((0.2 * 255).round()),
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -285,7 +285,7 @@ class HomeScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withAlpha((0.08 * 255).round()),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 18),
@@ -341,9 +341,9 @@ class HomeScreen extends StatelessWidget {
         color: DesignTokens.surface,
         child: ListTile(
           leading: CircleAvatar(
-            backgroundColor: isExpense
-                ? DesignTokens.danger.withOpacity(0.08)
-                : DesignTokens.success.withOpacity(0.08),
+      backgroundColor: isExpense
+        ? DesignTokens.danger.withAlpha((0.08 * 255).round())
+        : DesignTokens.success.withAlpha((0.08 * 255).round()),
             child: Icon(
               isExpense ? Icons.arrow_upward : Icons.arrow_downward,
               color: isExpense ? DesignTokens.danger : DesignTokens.success,
