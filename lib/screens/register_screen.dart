@@ -16,6 +16,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _loading = false;
+  bool _obscurePassword = true;
   final ApiService _api = ApiService();
 
   @override
@@ -153,6 +154,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _passwordCtrl,
                           decoration: InputDecoration(
                             prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
                             hintText: 'Password',
                             filled: true,
                             fillColor: DesignTokens.surface.withAlpha(
@@ -163,7 +176,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: BorderSide.none,
                             ),
                           ),
-                          obscureText: true,
+                          obscureText: _obscurePassword,
                           validator: (v) => v == null || v.length < 6
                               ? 'Password minimal 6 karakter'
                               : null,

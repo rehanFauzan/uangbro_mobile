@@ -34,7 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final e = await _api.getEmail();
     final p = await _api.getProfilePhoto();
     print('DEBUG: Username: $u, Email: $e, PhotoURL: $p'); // Debug
-    
+
     // Try to load photo from URL
     Uint8List? bytes;
     if (p != null && p.isNotEmpty) {
@@ -42,7 +42,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final response = await http.get(Uri.parse(p));
         if (response.statusCode == 200) {
           bytes = response.bodyBytes;
-          print('DEBUG: Photo loaded successfully, size: ${bytes.length} bytes');
+          print(
+            'DEBUG: Photo loaded successfully, size: ${bytes.length} bytes',
+          );
         } else {
           print('DEBUG: Failed to load photo, status: ${response.statusCode}');
         }
@@ -50,7 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         print('DEBUG: Error loading photo: $e');
       }
     }
-    
+
     if (!mounted) return;
     setState(() {
       _username = u ?? 'Pengguna';
@@ -70,13 +72,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Edit Profile', style: Theme.of(ctx).textTheme.titleMedium),
+                Text(
+                  'Edit Profile',
+                  style: Theme.of(ctx).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: usernameCtrl,
@@ -140,7 +147,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             await _loadProfile();
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Profile diperbarui')),
+                              const SnackBar(
+                                content: Text('Profile diperbarui'),
+                              ),
                             );
                           } else {
                             final msg =
@@ -362,6 +371,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
           ),
 
+          ListTile(
+            leading: const Icon(Icons.lock_outline),
+            title: const Text('Ubah Password'),
+            onTap: () => _showResetPasswordDialog(context),
+          ),
+
           const Divider(),
 
           // About Section
@@ -423,6 +438,137 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text("Reset", style: TextStyle(color: Colors.red)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showResetPasswordDialog(BuildContext context) {
+    final usernameCtrl = TextEditingController();
+    final newPassCtrl = TextEditingController();
+    final confirmPassCtrl = TextEditingController();
+    bool obscureNewPass = true;
+    bool obscureConfirmPass = true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Ubah Password'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: usernameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Username',
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: newPassCtrl,
+                obscureText: obscureNewPass,
+                decoration: InputDecoration(
+                  labelText: 'Password Baru',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscureNewPass
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        obscureNewPass = !obscureNewPass;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: confirmPassCtrl,
+                obscureText: obscureConfirmPass,
+                decoration: InputDecoration(
+                  labelText: 'Konfirmasi Password',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscureConfirmPass
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        obscureConfirmPass = !obscureConfirmPass;
+                      });
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final username = usernameCtrl.text.trim();
+                final newPass = newPassCtrl.text;
+                final confirmPass = confirmPassCtrl.text;
+
+                if (username.isEmpty ||
+                    newPass.isEmpty ||
+                    confirmPass.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Semua field wajib diisi')),
+                  );
+                  return;
+                }
+
+                if (newPass.length < 6) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Password minimal 6 karakter'),
+                    ),
+                  );
+                  return;
+                }
+
+                if (newPass != confirmPass) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Password tidak cocok')),
+                  );
+                  return;
+                }
+
+                Navigator.of(ctx).pop();
+                final messenger = ScaffoldMessenger.of(context);
+                final result = await _api.resetPassword(username, newPass);
+                if (result['status'] == 'success') {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        result['message'] ?? 'Password berhasil diubah',
+                      ),
+                    ),
+                  );
+                } else {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        result['message'] ?? 'Gagal mengubah password',
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
+        ),
       ),
     );
   }
