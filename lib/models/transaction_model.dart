@@ -31,6 +31,9 @@ class Transaction extends HiveObject {
   @HiveField(5)
   DateTime date;
 
+  @HiveField(6)
+  String? userId;
+
   Transaction({
     String? id,
     required this.type,
@@ -38,18 +41,22 @@ class Transaction extends HiveObject {
     required this.category,
     this.description = '',
     required this.date,
+    this.userId,
   }) : id = id ?? const Uuid().v4();
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
     return Transaction(
       id: json['id'],
-      type: json['type'] == 'income' 
-          ? TransactionType.income 
+      type: json['type'] == 'income'
+          ? TransactionType.income
           : TransactionType.expense,
       amount: double.parse(json['amount'].toString()),
       category: json['category'],
       description: json['description'] ?? '',
       date: DateTime.parse(json['date']),
+      userId: json.containsKey('user_id')
+          ? (json['user_id']?.toString())
+          : null,
     );
   }
 
@@ -61,6 +68,7 @@ class Transaction extends HiveObject {
       'category': category,
       'description': description,
       'date': date.toIso8601String(),
+      'user_id': userId,
     };
   }
 }

@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../services/transaction_provider.dart';
 import '../screens/categories_screen.dart';
 import '../screens/analytics_screen.dart';
+import '../services/api_service.dart';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -14,33 +16,47 @@ class ProfileScreen extends StatelessWidget {
       body: ListView(
         children: [
           const SizedBox(height: 20),
-          // User Profile Header
+          // User Profile Header (load username and email from secure storage)
           Center(
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer,
-                  child: Icon(
-                    Icons.person,
-                    size: 50,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  "Raihan",
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                Text(
-                  "user@uangbro.app",
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                ),
-              ],
+            child: FutureBuilder<List<String?>>(
+              future: Future.wait([
+                ApiService().getUsername(),
+                ApiService().getEmail(),
+              ]),
+              builder: (context, snap) {
+                final username = (snap.data != null && snap.data!.isNotEmpty)
+                    ? (snap.data![0] ?? 'Pengguna')
+                    : 'Pengguna';
+                final email = (snap.data != null && snap.data!.length > 1)
+                    ? snap.data![1]
+                    : null;
+                return Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.primaryContainer,
+                      child: Icon(
+                        Icons.person,
+                        size: 50,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      username,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    Text(
+                      email ?? '$username@uangbro.app',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 40),
@@ -55,6 +71,25 @@ class ProfileScreen extends StatelessWidget {
               style: TextStyle(color: Colors.red),
             ),
             onTap: () => _confirmReset(context),
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Logout'),
+            onTap: () async {
+              final api = ApiService();
+              final provider = Provider.of<TransactionProvider>(
+                context,
+                listen: false,
+              );
+              final navigator = Navigator.of(context);
+              await api.logout();
+              // refresh transactions to show legacy only
+              await provider.fetchTransactions();
+              navigator.pushReplacement(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
+            },
           ),
 
           ListTile(
@@ -128,14 +163,11 @@ class ProfileScreen extends StatelessWidget {
                             context,
                             listen: false,
                           );
+                          final messenger = ScaffoldMessenger.of(context);
                           final imported = await provider.importFromCsv(csv);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Imported $imported rows'),
-                              ),
-                            );
-                          }
+                          messenger.showSnackBar(
+                            SnackBar(content: Text('Imported $imported rows')),
+                          );
                         }
                       },
                       child: const Text('Import'),
@@ -203,15 +235,15 @@ class ProfileScreen extends StatelessWidget {
           TextButton(
             onPressed: () async {
               Navigator.of(ctx).pop();
-              await Provider.of<TransactionProvider>(
+              final provider = Provider.of<TransactionProvider>(
                 context,
                 listen: false,
-              ).resetData();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Semua data berhasil dihapus')),
-                );
-              }
+              );
+              final messenger = ScaffoldMessenger.of(context);
+              await provider.resetData();
+              messenger.showSnackBar(
+                const SnackBar(content: Text('Semua data berhasil dihapus')),
+              );
             },
             child: const Text("Reset", style: TextStyle(color: Colors.red)),
           ),

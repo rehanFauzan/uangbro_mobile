@@ -116,12 +116,14 @@ class _SplashScreenState extends State<SplashScreen>
                   duration: const Duration(milliseconds: 450),
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                        // compute alpha dynamically to replace deprecated withOpacity
-                        color: Colors.white.withAlpha(((_revealed ? 0.06 : 0.03) * 255).round()),
+                    // compute alpha dynamically to replace deprecated withOpacity
+                    color: Colors.white.withAlpha(
+                      ((_revealed ? 0.06 : 0.03) * 255).round(),
+                    ),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                            color: Colors.black.withAlpha((0.12 * 255).round()),
+                        color: Colors.black.withAlpha((0.12 * 255).round()),
                         blurRadius: 12,
                         offset: const Offset(0, 6),
                       ),
@@ -167,7 +169,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: LinearProgressIndicator(
                   value: null,
                   color: DesignTokens.primary,
-                    backgroundColor: Colors.white.withAlpha((0.06 * 255).round()),
+                  backgroundColor: Colors.white.withAlpha((0.06 * 255).round()),
                 ),
               ),
             ],

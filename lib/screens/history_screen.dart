@@ -134,9 +134,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     // surfaceContainerHighest.withOpacity deprecated; use withAlpha
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
                         .withAlpha((0.12 * 255).round()),
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -149,11 +147,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           Text(
                             'Perbandingan periode',
                             style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withAlpha((0.7 * 255).round()),
-                                    ),
+                              color: Theme.of(context).colorScheme.onSurface
+                                  .withAlpha((0.7 * 255).round()),
+                            ),
                           ),
                           const SizedBox(height: 6),
                           Text(
@@ -167,9 +163,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           Text(
                             'Dibandingkan ${_previousLabelForPreset(_selectedPreset)}: ${CurrencyFormatter.format(previousExpense)}',
                             style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
+                              color: Theme.of(context).colorScheme.onSurface
                                   .withAlpha((0.7 * 255).round()),
                               fontSize: 12,
                             ),
@@ -229,9 +223,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     // Slight background tint using alpha instead of withOpacity
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
                         .withAlpha((0.06 * 255).round()),
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -275,8 +267,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                     valueColor: const AlwaysStoppedAnimation(
                                       DesignTokens.primary,
                                     ),
-                  backgroundColor: DesignTokens.bg
-                    .withAlpha((0.08 * 255).round()),
+                                    backgroundColor: DesignTokens.bg.withAlpha(
+                                      (0.08 * 255).round(),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -462,9 +455,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildPeriodSelector(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         for (var p in PeriodPreset.values)
-          Expanded(
+          Flexible(
+            fit: FlexFit.loose,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: ElevatedButton(
@@ -605,13 +600,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
           );
         }
       },
-        child: Card(
+      child: Card(
         margin: const EdgeInsets.only(bottom: 8),
         elevation: 0,
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withAlpha((0.3 * 255).round()),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withAlpha((0.3 * 255).round()),
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor: isExpense

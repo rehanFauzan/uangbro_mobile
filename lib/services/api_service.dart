@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/transaction_model.dart';
-
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../models/transaction_model.dart';
 
 class ApiService {
   // Use localhost for Web/iOS, 10.0.2.2 for Android Emulator
@@ -24,9 +25,37 @@ class ApiService {
     return 'http://$host:$_backendPort/$_backendPath';
   }
 
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+
+  Future<Map<String, String>> _authHeaders() async {
+    final token = await _storage.read(key: 'api_token');
+    if (token != null && token.isNotEmpty) {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+    }
+    return {'Content-Type': 'application/json'};
+  }
+
+  Future<void> logout() async {
+    await _storage.delete(key: 'api_token');
+    await _storage.delete(key: 'username');
+    await _storage.delete(key: 'email');
+  }
+
+  Future<String?> getUsername() async {
+    return await _storage.read(key: 'username');
+  }
+
+  Future<String?> getEmail() async {
+    return await _storage.read(key: 'email');
+  }
+
   Future<List<Transaction>> getTransactions() async {
     try {
-      final response = await http.get(Uri.parse(baseUrl));
+      final headers = await _authHeaders();
+      final response = await http.get(Uri.parse(baseUrl), headers: headers);
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -41,9 +70,10 @@ class ApiService {
 
   Future<void> addTransaction(Transaction transaction) async {
     try {
+      final headers = await _authHeaders();
       final response = await http.post(
         Uri.parse(baseUrl),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: json.encode(transaction.toJson()),
       );
 
@@ -59,9 +89,10 @@ class ApiService {
   /// and will perform update when ID already exists.
   Future<void> updateTransaction(Transaction transaction) async {
     try {
+      final headers = await _authHeaders();
       final response = await http.post(
         Uri.parse(baseUrl),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: json.encode(transaction.toJson()),
       );
 
@@ -75,7 +106,11 @@ class ApiService {
 
   Future<void> deleteTransaction(String id) async {
     try {
-      final response = await http.delete(Uri.parse("$baseUrl?id=$id"));
+      final headers = await _authHeaders();
+      final response = await http.delete(
+        Uri.parse("$baseUrl?id=$id"),
+        headers: headers,
+      );
 
       if (response.statusCode != 200) {
         throw Exception('Failed to delete transaction');
@@ -83,5 +118,82 @@ class ApiService {
     } catch (e) {
       throw Exception('Error: $e');
     }
+  }
+
+  // Authentication endpoints
+  Future<String?> login(String username, String password) async {
+    final url = Uri.parse('http://$_backendHost:$_backendPort/login.php');
+    final resp = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'username': username, 'password': password}),
+    );
+    if (resp.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(resp.body);
+      if (data['status'] == 'success' && data['api_token'] != null) {
+        final token = data['api_token'];
+        await _storage.write(key: 'api_token', value: token);
+        // store username if returned by backend
+        if (data['username'] != null) {
+          await _storage.write(key: 'username', value: data['username']);
+        }
+        if (data['email'] != null) {
+          await _storage.write(key: 'email', value: data['email']);
+        }
+        return token;
+      }
+    }
+    return null;
+  }
+
+  Future<String?> register(
+    String username,
+    String password,
+    String email,
+  ) async {
+    final url = Uri.parse('http://$_backendHost:$_backendPort/register.php');
+    final resp = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'username': username,
+        'password': password,
+        'email': email,
+      }),
+    );
+    if (resp.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(resp.body);
+      if (data['status'] == 'success' && data['api_token'] != null) {
+        final token = data['api_token'];
+        await _storage.write(key: 'api_token', value: token);
+        if (data['username'] != null) {
+          await _storage.write(key: 'username', value: data['username']);
+        }
+        if (data['email'] != null) {
+          await _storage.write(key: 'email', value: data['email']);
+        }
+        return token;
+      }
+    }
+    return null;
+  }
+
+  /// Claims a list of legacy transaction IDs. Returns the decoded response map
+  /// with keys like `status` and `message` from the backend.
+  Future<Map<String, dynamic>> claimTransactions(List<String> ids) async {
+    final url = Uri.parse(
+      'http://$_backendHost:$_backendPort/claim_transactions.php',
+    );
+    final headers = await _authHeaders();
+    final resp = await http.post(
+      url,
+      headers: headers,
+      body: json.encode({'ids': ids}),
+    );
+    if (resp.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(resp.body);
+      return data;
+    }
+    return {'status': 'error', 'message': 'HTTP ${resp.statusCode}'};
   }
 }

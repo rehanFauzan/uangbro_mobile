@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/transaction_provider.dart';
+import '../services/api_service.dart';
 import '../utils/currency_formatter.dart';
 import '../models/transaction_model.dart';
 import '../utils/design_tokens.dart';
@@ -21,6 +22,22 @@ class HomeScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // Welcome text with username
+              FutureBuilder<String?>(
+                future: ApiService().getUsername(),
+                builder: (context, snap) {
+                  final username = snap.data ?? 'Pengguna';
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      'Selamat datang, $username',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                },
+              ),
               // Balance Card
               _buildBalanceCard(context, provider),
               const SizedBox(height: 16),
@@ -107,14 +124,14 @@ class HomeScreen extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           decoration: BoxDecoration(
-              color: DesignTokens.primary.withAlpha((0.12 * 255).round()),
+            color: DesignTokens.primary.withAlpha((0.12 * 255).round()),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-                color: DesignTokens.neutralLow.withAlpha((0.06 * 255).round()),
+              color: DesignTokens.neutralLow.withAlpha((0.06 * 255).round()),
             ),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withAlpha((0.18 * 255).round()),
+                color: Colors.black.withAlpha((0.18 * 255).round()),
                 blurRadius: 8,
                 offset: const Offset(0, 6),
               ),
@@ -127,7 +144,9 @@ class HomeScreen extends StatelessWidget {
               Text(
                 "Total Saldo",
                 style: TextStyle(
-                  color: DesignTokens.neutralHigh.withAlpha((0.95 * 255).round()),
+                  color: DesignTokens.neutralHigh.withAlpha(
+                    (0.95 * 255).round(),
+                  ),
                   fontSize: 13,
                 ),
               ),
@@ -205,7 +224,9 @@ class HomeScreen extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: DesignTokens.neutralHigh,
                         side: BorderSide(
-                          color: DesignTokens.neutralLow.withAlpha((0.2 * 255).round()),
+                          color: DesignTokens.neutralLow.withAlpha(
+                            (0.2 * 255).round(),
+                          ),
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -341,9 +362,9 @@ class HomeScreen extends StatelessWidget {
         color: DesignTokens.surface,
         child: ListTile(
           leading: CircleAvatar(
-      backgroundColor: isExpense
-        ? DesignTokens.danger.withAlpha((0.08 * 255).round())
-        : DesignTokens.success.withAlpha((0.08 * 255).round()),
+            backgroundColor: isExpense
+                ? DesignTokens.danger.withAlpha((0.08 * 255).round())
+                : DesignTokens.success.withAlpha((0.08 * 255).round()),
             child: Icon(
               isExpense ? Icons.arrow_upward : Icons.arrow_downward,
               color: isExpense ? DesignTokens.danger : DesignTokens.success,

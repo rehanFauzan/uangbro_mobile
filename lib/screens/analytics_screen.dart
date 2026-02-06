@@ -324,7 +324,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(color: DesignTokens.neutralLow, fontSize: 12),
+                style: const TextStyle(
+                  color: DesignTokens.neutralLow,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
@@ -490,7 +493,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               const SizedBox(height: 4),
               Text(
                 'Sebelumnya: ${CurrencyFormatter.format(previousExpense)}',
-                style: const TextStyle(color: DesignTokens.neutralLow, fontSize: 12),
+                style: const TextStyle(
+                  color: DesignTokens.neutralLow,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -527,11 +533,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       children: [
         Expanded(
           flex: 2,
-          child: Text(name, style: const TextStyle(color: DesignTokens.neutralHigh)),
+          child: Text(
+            name,
+            style: const TextStyle(color: DesignTokens.neutralHigh),
+          ),
         ),
         const SizedBox(width: 8),
         Expanded(
-            flex: 5,
+          flex: 5,
           child: LinearProgressIndicator(
             value: ratio,
             color: color,
