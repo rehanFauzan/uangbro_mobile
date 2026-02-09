@@ -47,6 +47,10 @@ class ApiService {
     return await _storage.read(key: 'profile_photo');
   }
 
+  Future<String?> getUserId() async {
+    return await _storage.read(key: 'user_id');
+  }
+
   Future<List<Transaction>> getTransactions() async {
     try {
       final headers = await _authHeaders();
@@ -131,6 +135,12 @@ class ApiService {
         if (data['email'] != null) {
           await _storage.write(key: 'email', value: data['email']);
         }
+        if (data['user_id'] != null) {
+          await _storage.write(
+            key: 'user_id',
+            value: data['user_id'].toString(),
+          );
+        }
         return token;
       }
     }
@@ -162,6 +172,12 @@ class ApiService {
         }
         if (data['email'] != null) {
           await _storage.write(key: 'email', value: data['email']);
+        }
+        if (data['user_id'] != null) {
+          await _storage.write(
+            key: 'user_id',
+            value: data['user_id'].toString(),
+          );
         }
         return token;
       }
@@ -247,6 +263,54 @@ class ApiService {
       url,
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'username': username, 'action': 'request'}),
+    );
+    if (resp.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(resp.body);
+      return data;
+    }
+    return {'status': 'error', 'message': 'HTTP ${resp.statusCode}'};
+  }
+
+  // Export transactions to CSV (returns JSON with base64 encoded CSV)
+  Future<Map<String, dynamic>> exportTransactionsApi(String userId) async {
+    final url = Uri.parse(
+      'http://$_backendHost:$_backendPort/export_csv_api.php?user_id=$userId',
+    );
+    try {
+      final resp = await http.get(url);
+      if (resp.statusCode == 200) {
+        try {
+          final Map<String, dynamic> data = json.decode(resp.body);
+          return data;
+        } catch (e) {
+          // If JSON decode fails, return the raw response as error
+          return {
+            'status': 'error',
+            'message':
+                'Invalid JSON response: ${resp.body.substring(0, 100)}...',
+            'raw_response': resp.body,
+          };
+        }
+      }
+      return {
+        'status': 'error',
+        'message': 'HTTP ${resp.statusCode}: ${resp.body}',
+      };
+    } catch (e) {
+      return {'status': 'error', 'message': 'Connection error: $e'};
+    }
+  }
+
+  // Import transactions from CSV data
+  Future<Map<String, dynamic>> importTransactions(
+    String userId,
+    List<Map<String, dynamic>> transactions,
+  ) async {
+    final url = Uri.parse('http://$_backendHost:$_backendPort/export_csv.php');
+    final resp = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'user_id': userId, 'transactions': transactions}),
     );
     if (resp.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(resp.body);

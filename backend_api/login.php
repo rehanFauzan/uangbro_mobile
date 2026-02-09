@@ -43,7 +43,8 @@ if (empty($token)) {
     $conn->query("UPDATE users SET api_token='$token' WHERE id=$uid");
 }
 
-// include email if present
+// include email and user_id if present
 $email = isset($row['email']) ? $conn->real_escape_string($row['email']) : null;
-echo json_encode(["status" => "success", "api_token" => $conn->real_escape_string($token), "username" => $conn->real_escape_string($username), "email" => $email]);
+$userId = intval($row['id']);
+echo json_encode(["status" => "success", "api_token" => $conn->real_escape_string($token), "username" => $conn->real_escape_string($username), "email" => $email, "user_id" => $userId]);
 $conn->close();

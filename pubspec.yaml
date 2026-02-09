@@ -51,6 +51,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_secure_storage: ^8.0.0
   image_picker: ^0.8.7+5
+  file_picker: ^8.0.0
 
 dev_dependencies:
   flutter_test:

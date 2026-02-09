@@ -37,7 +37,8 @@ $token = bin2hex(random_bytes(32));
 // Insert with email column (assumes users table has `email` column)
 $sql = "INSERT INTO users (username, password_hash, api_token, email) VALUES ('$username', '$hash', '$token', '$email')";
 if ($conn->query($sql) === TRUE) {
-    echo json_encode(["status" => "success", "api_token" => $conn->real_escape_string($token), "username" => $conn->real_escape_string($username), "email" => $conn->real_escape_string($email)]);
+    $userId = $conn->insert_id;
+    echo json_encode(["status" => "success", "api_token" => $conn->real_escape_string($token), "username" => $conn->real_escape_string($username), "email" => $conn->real_escape_string($email), "user_id" => $userId]);
 } else {
     echo json_encode(["status" => "error", "message" => "DB error: " . $conn->error]);
 }

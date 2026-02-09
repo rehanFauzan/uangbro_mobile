@@ -9,6 +9,7 @@ $socket = "/Applications/MAMP/tmp/mysql/mysql.sock";
 $conn = new mysqli($host, $user, $pass, $db, $port, $socket);
 
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    header('Content-Type: application/json');
+    echo json_encode(['status' => 'error', 'message' => 'Connection failed: ' . $conn->connect_error]);
+    exit;
 }
-?>

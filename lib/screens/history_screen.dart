@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'dart:html' as html;
 import '../models/transaction_model.dart';
 import '../services/transaction_provider.dart';
+import '../services/api_service.dart';
 import 'transaction_form.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/design_tokens.dart';
@@ -22,6 +25,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       'date_desc'; // date_desc, date_asc, amount_desc, amount_asc
   PeriodPreset _selectedPreset = PeriodPreset.month;
   DateTimeRange? _customRange;
+  final ApiService _api = ApiService();
 
   @override
   void dispose() {
@@ -321,6 +325,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       label: "Pengeluaran",
                       type: TransactionType.expense,
                     ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.file_download_outlined),
+                      onPressed: () => _showExportImportDialog(context),
+                      tooltip: 'Export/Import Data',
+                    ),
                   ],
                 );
               },
@@ -543,6 +553,139 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
+  void _showExportImportDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: DesignTokens.surface,
+        title: const Text(
+          'Export/Import Data',
+          style: TextStyle(color: DesignTokens.neutralHigh),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(
+                Icons.file_download,
+                color: DesignTokens.primary,
+              ),
+              title: const Text('Export ke CSV'),
+              subtitle: const Text('Unduh transaksi sebagai file CSV'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _exportTransactions(context);
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(
+                Icons.file_upload,
+                color: DesignTokens.primary,
+              ),
+              title: const Text('Import dari CSV'),
+              subtitle: const Text('Pilih file CSV untuk import'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _importTransactions(context);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Batal'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportTransactions(BuildContext context) async {
+    try {
+      final userId = await _api.getUserId();
+      if (userId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('User ID tidak ditemukan')),
+          );
+        }
+        return;
+      }
+
+      final result = await _api.exportTransactionsApi(userId);
+
+      // Check if result is valid
+      if (result == null || result['status'] != 'success') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                result?['message'] ?? 'Gagal export: Response tidak valid',
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Get CSV data safely
+      final csvBase64 = result['csv'] as String?;
+      final fileName = result['filename'] as String?;
+
+      if (csvBase64 == null || csvBase64.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gagal export: Data CSV kosong')),
+          );
+        }
+        return;
+      }
+
+      if (fileName == null || fileName.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gagal export: Nama file kosong')),
+          );
+        }
+        return;
+      }
+
+      // Decode base64 CSV
+      try {
+        final csvBytes = base64Decode(csvBase64);
+        final csvContent = utf8.decode(csvBytes);
+
+        // Create blob and download link for web
+        final blob = html.Blob([csvContent], 'text/csv');
+        final url = html.Url.createObjectUrl(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', fileName)
+          ..click();
+        html.Url.revokeObjectUrl(url);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Export berhasil! ($fileName)')),
+          );
+        }
+      } catch (decodeError) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal decode CSV: $decodeError')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal export: $e')));
+      }
+    }
+  }
+
   Widget _buildTransactionItem(
     BuildContext context,
     TransactionProvider provider,
@@ -716,5 +859,87 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _importTransactions(BuildContext context) async {
+    // Create file input element
+    final input = html.FileUploadInputElement()..accept = '.csv';
+    input.click();
+
+    input.onChange.listen((e) {
+      final files = input.files;
+      if (files == null || files.isEmpty) return;
+
+      final file = files.first;
+      final reader = html.FileReader();
+
+      reader.onLoadEnd.listen((loadEnd) async {
+        final result = reader.result as String;
+        final lines = result.split('\n');
+
+        // Skip header row
+        if (lines.isEmpty) return;
+
+        final transactions = <Map<String, dynamic>>[];
+
+        for (int i = 1; i < lines.length; i++) {
+          final line = lines[i].trim();
+          if (line.isEmpty) continue;
+
+          // Parse CSV line (simple parsing, doesn't handle quoted fields)
+          final parts = line.split(',');
+          if (parts.length >= 5) {
+            transactions.add({
+              'type': parts[1].trim(),
+              'amount': double.tryParse(parts[2].trim()) ?? 0,
+              'description': parts[3].trim().replaceAll('"', ''),
+              'date': parts[4].trim(),
+              'category': parts.length > 5
+                  ? parts[5].trim().replaceAll('"', '')
+                  : 'Lainnya',
+            });
+          }
+        }
+
+        final userId = await _api.getUserId();
+        if (userId == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('User ID tidak ditemukan')),
+            );
+          }
+          return;
+        }
+
+        final importResult = await _api.importTransactions(
+          userId,
+          transactions,
+        );
+
+        if (importResult['status'] == 'success') {
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(importResult['message'])));
+            // Refresh transactions
+            final provider = Provider.of<TransactionProvider>(
+              context,
+              listen: false,
+            );
+            await provider.fetchTransactions();
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(importResult['message'] ?? 'Gagal import'),
+              ),
+            );
+          }
+        }
+      });
+
+      reader.readAsText(file);
+    });
   }
 }
