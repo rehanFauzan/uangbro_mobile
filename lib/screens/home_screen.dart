@@ -10,8 +10,15 @@ import '../models/transaction_model.dart';
 import '../utils/design_tokens.dart';
 import 'add_transaction_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _showBalance = true;
 
   @override
   Widget build(BuildContext context) {
@@ -151,13 +158,58 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                CurrencyFormatter.format(provider.totalBalance),
-                style: const TextStyle(
-                  color: DesignTokens.neutralHigh,
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Builder(
+                      builder: (_) {
+                        final formatted = CurrencyFormatter.format(
+                          provider.totalBalance,
+                        );
+                        String display;
+
+                        if (_showBalance) {
+                          display = formatted;
+                        } else {
+                          // Keep the currency symbol (e.g., 'Rp ') and mask the numeric part
+                          if (formatted.startsWith('Rp ')) {
+                            final prefix = 'Rp ';
+                            final rest = formatted.substring(prefix.length);
+                            final masked = List.filled(rest.length, '•').join();
+                            display = '$prefix$masked';
+                          } else {
+                            // Fallback: mask whole string
+                            display = List.filled(formatted.length, '•').join();
+                          }
+                        }
+
+                        return Text(
+                          display,
+                          style: const TextStyle(
+                            color: DesignTokens.neutralHigh,
+                            fontSize: 34,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _showBalance = !_showBalance;
+                      });
+                    },
+                    icon: Icon(
+                      _showBalance ? Icons.visibility : Icons.visibility_off,
+                      color: DesignTokens.neutralLow,
+                    ),
+                    tooltip: _showBalance
+                        ? 'Sembunyikan jumlah'
+                        : 'Tampilkan jumlah',
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               // Quick actions
