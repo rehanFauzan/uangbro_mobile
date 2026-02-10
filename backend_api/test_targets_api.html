@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Test Targets API</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 5px;
+        cursor: pointer;
+      }
+      #result {
+        margin-top: 20px;
+        padding: 10px;
+        background: #f0f0f0;
+        white-space: pre-wrap;
+      }
+      .success {
+        color: green;
+      }
+      .error {
+        color: red;
+      }
+      .target-item {
+        background: #fff;
+        padding: 10px;
+        margin: 5px 0;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Test Targets API</h2>
+
+    <div>
+      <label>User ID: <input type="text" id="userId" value="1" /></label>
+    </div>
+    <br />
+
+    <button onclick="testGet()">Test GET (Load Targets)</button>
+    <button onclick="testPost()">Test POST (Add Target)</button>
+    <button onclick="clearResults()">Clear</button>
+
+    <div id="targetsList"></div>
+    <div id="result"></div>
+
+    <script>
+      const apiUrl = "http://localhost:8000/targets_api.php";
+
+      function log(message, isError = false) {
+        const resultDiv = document.getElementById("result");
+        resultDiv.innerHTML += `<div class="${isError ? "error" : "success"}">${message}</div>`;
+      }
+
+      function clearResults() {
+        document.getElementById("result").innerHTML = "";
+        document.getElementById("targetsList").innerHTML = "";
+      }
+
+      function formatRupiah(amount) {
+        return "Rp " + parseFloat(amount).toLocaleString("id-ID");
+      }
+
+      function testGet() {
+        const userId = document.getElementById("userId").value;
+        log("Loading targets for user_id: " + userId);
+
+        fetch(apiUrl + "?user_id=" + userId)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              log("Success! Found " + data.data.length + " targets");
+
+              // Display targets nicely
+              let targetsHtml = "<h3>Your Targets:</h3>";
+              if (data.data.length === 0) {
+                targetsHtml += "<p>No targets found</p>";
+              } else {
+                data.data.forEach((target, index) => {
+                  targetsHtml += `
+                                    <div class="target-item">
+                                        <strong>#${index + 1} ${target.name}</strong><br>
+                                        Target Amount: ${formatRupiah(target.target_amount)}<br>
+                                        Current Progress: ${formatRupiah(target.current_progress)}<br>
+                                        Deadline: ${target.deadline}<br>
+                                        ID: ${target.id}
+                                    </div>
+                                `;
+                });
+              }
+              document.getElementById("targetsList").innerHTML = targetsHtml;
+
+              log(JSON.stringify(data, null, 2));
+            } else {
+              log("Error: " + data.message, true);
+            }
+          })
+          .catch((error) => {
+            log("Error: " + error, true);
+          });
+      }
+
+      function testPost() {
+        const userId = document.getElementById("userId").value;
+        const amount = prompt(
+          "Enter target amount (e.g., 1000000):",
+          "1000000",
+        );
+        if (!amount) return;
+
+        log("Adding target for user_id: " + userId + " with amount: " + amount);
+
+        fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: userId,
+            name: "Test Target " + new Date().toLocaleTimeString(),
+            target_amount: parseFloat(amount),
+            deadline: "2025-12-31",
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              log("Success! Target created with ID: " + data.target_id);
+              // Refresh list
+              testGet();
+            } else {
+              log("Error: " + data.message, true);
+            }
+          })
+          .catch((error) => {
+            log("Error: " + error, true);
+          });
+      }
+    </script>
+  </body>
+</html>

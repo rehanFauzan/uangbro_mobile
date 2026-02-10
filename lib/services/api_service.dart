@@ -318,4 +318,127 @@ class ApiService {
     }
     return {'status': 'error', 'message': 'HTTP ${resp.statusCode}'};
   }
+
+  // Target API methods
+  static const String _targetsBaseUrl =
+      'http://$_backendHost:$_backendPort/targets_api.php';
+
+  Future<List<dynamic>> getTargets() async {
+    try {
+      final userId = await getUserId();
+      if (userId == null) {
+        throw Exception('User not logged in');
+      }
+      final url = Uri.parse('$_targetsBaseUrl?user_id=$userId');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return data['data'] ?? [];
+        } else {
+          throw Exception(data['message'] ?? 'Failed to load targets');
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error loading targets: $e');
+    }
+  }
+
+  Future<bool> addTarget({
+    required String name,
+    required double targetAmount,
+    required String deadline,
+  }) async {
+    try {
+      final userId = await getUserId();
+      if (userId == null) {
+        throw Exception('User not logged in');
+      }
+      final url = Uri.parse(_targetsBaseUrl);
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'user_id': userId,
+          'name': name,
+          'target_amount': targetAmount,
+          'deadline': deadline,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        return data['success'] == true;
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error adding target: $e');
+    }
+  }
+
+  Future<bool> updateTarget({
+    required String targetId,
+    String? name,
+    double? targetAmount,
+    String? deadline,
+    double? currentProgress,
+    bool? isCompleted,
+  }) async {
+    try {
+      final userId = await getUserId();
+      if (userId == null) {
+        throw Exception('User not logged in');
+      }
+      final url = Uri.parse(
+        '$_targetsBaseUrl?target_id=$targetId&user_id=$userId',
+      );
+      final body = <String, dynamic>{};
+      if (name != null) body['name'] = name;
+      if (targetAmount != null) body['target_amount'] = targetAmount;
+      if (deadline != null) body['deadline'] = deadline;
+      if (currentProgress != null) body['current_progress'] = currentProgress;
+      if (isCompleted != null) body['is_completed'] = isCompleted;
+
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        return data['success'] == true;
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error updating target: $e');
+    }
+  }
+
+  Future<bool> deleteTarget(String targetId) async {
+    try {
+      final userId = await getUserId();
+      if (userId == null) {
+        throw Exception('User not logged in');
+      }
+      final url = Uri.parse(
+        '$_targetsBaseUrl?target_id=$targetId&user_id=$userId',
+      );
+      final response = await http.delete(url);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        return data['success'] == true;
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error deleting target: $e');
+    }
+  }
 }

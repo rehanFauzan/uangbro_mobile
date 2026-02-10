@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../models/savings_target_model.dart';
 import '../models/transaction_model.dart';
 import '../services/api_service.dart';
 import '../services/transaction_provider.dart';
@@ -17,31 +16,22 @@ class TargetsScreen extends StatefulWidget {
 }
 
 class _TargetsScreenState extends State<TargetsScreen> {
-  late Box<SavingsTarget> _targetsBox;
+  final ApiService _apiService = ApiService();
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _targetAmountController = TextEditingController();
   DateTime _selectedDeadline = DateTime.now().add(const Duration(days: 30));
   bool _isLoading = true;
+  bool _isSaving = false;
   bool _showAddForm = false;
-  String? _currentUserId;
+  bool _isEditing = false;
+  String? _editingTargetId;
+  List<dynamic> _targets = [];
 
   @override
   void initState() {
     super.initState();
-    _openBox();
-  }
-
-  Future<void> _openBox() async {
-    _targetsBox = await Hive.openBox<SavingsTarget>('savings_targets');
-
-    // Get current user ID
-    final apiService = ApiService();
-    _currentUserId = await apiService.getUserId();
-
-    setState(() {
-      _isLoading = false;
-    });
+    _loadTargets();
   }
 
   @override
@@ -49,6 +39,51 @@ class _TargetsScreenState extends State<TargetsScreen> {
     _nameController.dispose();
     _targetAmountController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadTargets() async {
+    try {
+      // Check if user is logged in first
+      final userId = await _apiService.getUserId();
+      if (userId == null) {
+        // User not logged in yet, just show empty list
+        if (mounted) {
+          setState(() {
+            _targets = [];
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      final targets = await _apiService.getTargets();
+      if (mounted) {
+        setState(() {
+          _targets = targets;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      // Only show error if it's not a login-related issue
+      final errorStr = e.toString();
+      if (errorStr.contains('User not logged in') ||
+          errorStr.contains('not logged in')) {
+        // User not logged in, this is expected - just show empty list
+        if (mounted) {
+          setState(() {
+            _targets = [];
+            _isLoading = false;
+          });
+        }
+      } else {
+        // Real error - show message
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
   }
 
   double _getCurrentBalance() {
@@ -62,32 +97,73 @@ class _TargetsScreenState extends State<TargetsScreen> {
     return totalIncome - totalExpense;
   }
 
-  Future<void> _addTarget() async {
+  Future<void> _saveTarget() async {
     if (_formKey.currentState!.validate()) {
-      final currentBalance = _getCurrentBalance();
+      setState(() {
+        _isSaving = true;
+      });
 
-      final target = SavingsTarget(
-        name: _nameController.text.trim(),
-        targetAmount: CurrencyFormatter.parseCurrency(
+      try {
+        final name = _nameController.text.trim();
+        final targetAmount = CurrencyFormatter.parseCurrency(
           _targetAmountController.text,
-        ),
-        currentProgress: currentBalance, // Auto-set from current balance
-        deadline: _selectedDeadline,
-        userId: _currentUserId,
-      );
-
-      await _targetsBox.put(target.id, target);
-      _clearForm();
-      setState(() {});
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Target "${target.name}" berhasil ditambahkan'),
-          ),
         );
+        final deadline = DateFormat('yyyy-MM-dd').format(_selectedDeadline);
+
+        if (_isEditing && _editingTargetId != null) {
+          // Update existing target
+          await _apiService.updateTarget(
+            targetId: _editingTargetId!,
+            name: name,
+            targetAmount: targetAmount,
+            deadline: deadline,
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Target berhasil diperbarui')),
+            );
+          }
+        } else {
+          // Add new target
+          await _apiService.addTarget(
+            name: name,
+            targetAmount: targetAmount,
+            deadline: deadline,
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Target "$name" berhasil ditambahkan')),
+            );
+          }
+        }
+
+        _clearForm();
+        await _loadTargets();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Gagal menyimpan target: $e')));
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+        }
       }
     }
+  }
+
+  void _editTarget(dynamic target) {
+    setState(() {
+      _isEditing = true;
+      _editingTargetId = target['id'].toString();
+      _nameController.text = target['name'];
+      _targetAmountController.text = target['target_amount'].toString();
+      _selectedDeadline = DateTime.parse(target['deadline']);
+      _showAddForm = true;
+    });
   }
 
   Future<void> _deleteTarget(String id) async {
@@ -103,15 +179,38 @@ class _TargetsScreenState extends State<TargetsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(color: DesignTokens.danger),
+            ),
           ),
         ],
       ),
     );
 
     if (confirm == true) {
-      await _targetsBox.delete(id);
-      setState(() {});
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        await _apiService.deleteTarget(id);
+        await _loadTargets();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Target berhasil dihapus')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Gagal menghapus target: $e')));
+        }
+      }
     }
   }
 
@@ -120,6 +219,8 @@ class _TargetsScreenState extends State<TargetsScreen> {
     _targetAmountController.clear();
     _selectedDeadline = DateTime.now().add(const Duration(days: 30));
     _showAddForm = false;
+    _isEditing = false;
+    _editingTargetId = null;
   }
 
   Future<void> _selectDeadline() async {
@@ -148,6 +249,21 @@ class _TargetsScreenState extends State<TargetsScreen> {
     return DateFormat('dd MMM yyyy').format(deadline);
   }
 
+  double _getProgressPercentage(dynamic target) {
+    final currentProgress =
+        double.tryParse(target['current_progress'].toString()) ?? 0;
+    final targetAmount =
+        double.tryParse(target['target_amount'].toString()) ?? 1;
+    if (targetAmount <= 0) return 0;
+    return ((currentProgress / targetAmount) * 100).clamp(0, 100);
+  }
+
+  bool _isOverdue(dynamic target) {
+    if (target['is_completed'] == 1) return false;
+    final deadline = DateTime.parse(target['deadline']);
+    return DateTime.now().isAfter(deadline);
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentBalance = _getCurrentBalance();
@@ -156,14 +272,15 @@ class _TargetsScreenState extends State<TargetsScreen> {
       appBar: AppBar(
         title: const Text('Targets'),
         actions: [
-          IconButton(
-            icon: Icon(_showAddForm ? Icons.close : Icons.add),
-            onPressed: () {
-              setState(() {
-                _showAddForm = !_showAddForm;
-              });
-            },
-          ),
+          if (_showAddForm)
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () {
+                setState(() {
+                  _showAddForm = false;
+                });
+              },
+            ),
         ],
       ),
       body: _isLoading
@@ -259,15 +376,15 @@ class _TargetsScreenState extends State<TargetsScreen> {
           children: [
             Row(
               children: [
-                const Icon(
-                  Icons.add_circle,
+                Icon(
+                  _isEditing ? Icons.edit : Icons.add_circle,
                   color: DesignTokens.primary,
                   size: 24,
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  'Tambah Target Baru',
-                  style: TextStyle(
+                Text(
+                  _isEditing ? 'Edit Target' : 'Tambah Target Baru',
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: DesignTokens.neutralHigh,
@@ -318,8 +435,10 @@ class _TargetsScreenState extends State<TargetsScreen> {
                   color: DesignTokens.success,
                 ),
               ),
-              inputFormatters: [CurrencyTextInputFormatter()],
               keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+              ],
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Jumlah target wajib diisi';
@@ -400,7 +519,7 @@ class _TargetsScreenState extends State<TargetsScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _addTarget,
+                onPressed: _isSaving ? null : _saveTarget,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: DesignTokens.primary,
                   foregroundColor: Colors.white,
@@ -409,10 +528,22 @@ class _TargetsScreenState extends State<TargetsScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'Simpan Target',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        _isEditing ? 'Perbarui Target' : 'Simpan Target',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -422,14 +553,7 @@ class _TargetsScreenState extends State<TargetsScreen> {
   }
 
   Widget _buildTargetsList(double currentBalance) {
-    // Filter targets by current user ID
-    final targets =
-        _targetsBox.values
-            .where((target) => target.userId == _currentUserId)
-            .toList()
-          ..sort((a, b) => a.deadline.compareTo(b.deadline));
-
-    if (targets.isEmpty) {
+    if (_targets.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -476,157 +600,193 @@ class _TargetsScreenState extends State<TargetsScreen> {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: targets.length,
+      itemCount: _targets.length,
       itemBuilder: (context, index) {
-        final target = targets[index];
-        // Update progress based on current balance
-        if (target.currentProgress != currentBalance) {
-          final updated = target.copyWith(currentProgress: currentBalance);
-          _targetsBox.put(target.id, updated);
+        final target = _targets[index];
+        final targetAmount =
+            double.tryParse(target['target_amount'].toString()) ?? 1;
+
+        // Use current balance as progress
+        final currentProgress = currentBalance;
+        final progress = targetAmount > 0
+            ? ((currentProgress / targetAmount) * 100).clamp(0, 100)
+            : 0;
+        final remainingAmount = targetAmount - currentProgress;
+        final isOverdue = _isOverdue(target);
+
+        Color statusColor;
+        if (target['is_completed'] == 1) {
+          statusColor = DesignTokens.success;
+        } else if (isOverdue) {
+          statusColor = DesignTokens.danger;
+        } else {
+          statusColor = DesignTokens.primary;
         }
-        return _buildTargetCard(target);
-      },
-    );
-  }
 
-  Widget _buildTargetCard(SavingsTarget target) {
-    final progress = target.progressPercentage;
-    final isOverdue = target.isOverdue;
-
-    Color statusColor;
-    if (target.isCompleted) {
-      statusColor = DesignTokens.success;
-    } else if (isOverdue) {
-      statusColor = DesignTokens.danger;
-    } else {
-      statusColor = DesignTokens.primary;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: DesignTokens.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  target.name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: DesignTokens.neutralHigh,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  target.isCompleted
-                      ? 'Selesai'
-                      : (isOverdue
-                            ? 'Terlambat'
-                            : '${progress.toStringAsFixed(0)}%'),
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: DesignTokens.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
           ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                CurrencyFormatter.format(target.currentProgress),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: DesignTokens.neutralHigh,
-                ),
-              ),
-              Text(
-                'dari ${CurrencyFormatter.format(target.targetAmount)}',
-                style: TextStyle(fontSize: 14, color: DesignTokens.neutralLow),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Stack(
-            children: [
-              Container(
-                height: 8,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              Container(
-                height: 8,
-                width:
-                    MediaQuery.of(context).size.width *
-                    0.7 *
-                    (progress / 100).clamp(0.0, 1.0),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [statusColor, statusColor.withOpacity(0.7)],
-                  ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                DateFormat('dd MMM yyyy').format(target.deadline),
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isOverdue
-                      ? DesignTokens.danger
-                      : DesignTokens.neutralLow,
-                ),
-              ),
-              if (!target.isCompleted && target.remainingAmount > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: DesignTokens.success.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'Sisa: ${CurrencyFormatter.format(target.remainingAmount)}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: DesignTokens.success,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      target['name'],
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: DesignTokens.neutralHigh,
+                      ),
                     ),
                   ),
-                ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      target['is_completed'] == 1
+                          ? 'Selesai'
+                          : (isOverdue
+                                ? 'Terlambat'
+                                : '${progress.toStringAsFixed(0)}%'),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: () => _editTarget(target),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: DesignTokens.primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.edit_outlined,
+                        color: DesignTokens.primary,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: () => _deleteTarget(target['id'].toString()),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: DesignTokens.danger.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: DesignTokens.danger,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    CurrencyFormatter.format(currentProgress),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: DesignTokens.neutralHigh,
+                    ),
+                  ),
+                  Text(
+                    'dari ${CurrencyFormatter.format(targetAmount)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: DesignTokens.neutralLow,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Stack(
+                children: [
+                  Container(
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  Container(
+                    height: 8,
+                    width:
+                        MediaQuery.of(context).size.width *
+                        0.7 *
+                        (progress / 100).clamp(0.0, 1.0),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [statusColor, statusColor.withOpacity(0.7)],
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    DateFormat(
+                      'dd MMM yyyy',
+                    ).format(DateTime.parse(target['deadline'])),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isOverdue
+                          ? DesignTokens.danger
+                          : DesignTokens.neutralLow,
+                    ),
+                  ),
+                  if (target['is_completed'] != 1 && remainingAmount > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: DesignTokens.success.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'Sisa: ${CurrencyFormatter.format(remainingAmount)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: DesignTokens.success,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
