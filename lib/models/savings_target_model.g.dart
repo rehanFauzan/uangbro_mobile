@@ -23,14 +23,15 @@ class SavingsTargetAdapter extends TypeAdapter<SavingsTarget> {
       currentProgress: fields[3] as double,
       deadline: fields[4] as DateTime,
       createdAt: fields[5] as DateTime,
-      isCompleted: fields[6] as bool,
+      userId: fields[6] as String?,
+      isCompleted: fields[7] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, SavingsTarget obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -44,6 +45,8 @@ class SavingsTargetAdapter extends TypeAdapter<SavingsTarget> {
       ..writeByte(5)
       ..write(obj.createdAt)
       ..writeByte(6)
+      ..write(obj.userId)
+      ..writeByte(7)
       ..write(obj.isCompleted);
   }
 

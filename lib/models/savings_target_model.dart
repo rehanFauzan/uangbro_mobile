@@ -24,6 +24,9 @@ class SavingsTarget extends HiveObject {
   DateTime createdAt;
 
   @HiveField(6)
+  String? userId;
+
+  @HiveField(7)
   bool isCompleted;
 
   SavingsTarget({
@@ -34,6 +37,7 @@ class SavingsTarget extends HiveObject {
     required this.deadline,
     DateTime? createdAt,
     this.isCompleted = false,
+    this.userId,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now();
 
@@ -65,6 +69,7 @@ class SavingsTarget extends HiveObject {
       deadline: DateTime.parse(json['deadline']),
       createdAt: DateTime.parse(json['createdAt']),
       isCompleted: json['isCompleted'] ?? false,
+      userId: json['userId']?.toString(),
     );
   }
 
@@ -77,15 +82,18 @@ class SavingsTarget extends HiveObject {
       'deadline': deadline.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
       'isCompleted': isCompleted,
+      'userId': userId,
     };
   }
 
   SavingsTarget copyWith({
+    String? id,
     String? name,
     double? targetAmount,
     double? currentProgress,
     DateTime? deadline,
     bool? isCompleted,
+    String? userId,
   }) {
     return SavingsTarget(
       id: id,
@@ -95,6 +103,7 @@ class SavingsTarget extends HiveObject {
       deadline: deadline ?? this.deadline,
       createdAt: createdAt,
       isCompleted: isCompleted ?? this.isCompleted,
+      userId: userId ?? this.userId,
     );
   }
 }
