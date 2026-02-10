@@ -5,6 +5,7 @@ import 'home_screen.dart';
 import 'add_transaction_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
+import 'targets_screen.dart';
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -50,6 +51,7 @@ class _MainWrapperState extends State<MainWrapper> {
         },
       ),
       const HistoryScreen(),
+      const TargetsScreen(),
       const ProfileScreen(),
     ];
 
@@ -77,6 +79,11 @@ class _MainWrapperState extends State<MainWrapper> {
             icon: Icon(Icons.history_outlined),
             selectedIcon: Icon(Icons.history),
             label: 'History',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.flag_outlined),
+            selectedIcon: Icon(Icons.flag),
+            label: 'Targets',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
