@@ -4,6 +4,20 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-API-Token");
 
+// Polyfill getallheaders() untuk nginx / InfinityFree
+if (!function_exists('getallheaders')) {
+    function getallheaders() {
+        $headers = [];
+        foreach ($_SERVER as $name => $value) {
+            if (substr($name, 0, 5) === 'HTTP_') {
+                $key = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
+                $headers[$key] = $value;
+            }
+        }
+        return $headers;
+    }
+}
+
 include 'db_connect.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -14,30 +28,12 @@ if ($method == 'OPTIONS') {
 }
 
 function getAuthUserId($conn) {
-    $rawHeaders = getallheaders();
-    $headers = array_change_key_case($rawHeaders, CASE_LOWER);
-    $token = null;
-    
-    if (isset($headers['authorization'])) {
-        $auth = $headers['authorization'];
-        if (stripos($auth, 'Bearer ') === 0) {
-            $token = substr($auth, 7);
-        } else {
-            $token = $auth;
-        }
-    }
-    if (!$token && isset($headers['x-api-token'])) {
-        $token = $headers['x-api-token'];
-    }
-
-    if ($token) {
-        $t = $conn->real_escape_string($token);
-        $uSql = "SELECT id FROM users WHERE api_token='$t' LIMIT 1";
-        $uRes = $conn->query($uSql);
-        if ($uRes && $uRes->num_rows > 0) {
-            $uRow = $uRes->fetch_assoc();
-            return intval($uRow['id']);
-        }
+    $token = getToken();
+    if (!$token) return null;
+    $t = $conn->real_escape_string($token);
+    $uRes = $conn->query("SELECT id FROM users WHERE api_token='$t' LIMIT 1");
+    if ($uRes && $uRes->num_rows > 0) {
+        return intval($uRes->fetch_assoc()['id']);
     }
     return null;
 }
@@ -47,9 +43,13 @@ switch ($method) {
         $user_id = getAuthUserId($conn);
 
         if ($user_id !== null) {
-            $sql = "SELECT * FROM transactions WHERE user_id = $user_id OR user_id IS NULL ORDER BY date DESC";
+            // Hanya tampilkan transaksi milik user yang login
+            $sql = "SELECT * FROM transactions WHERE user_id = $user_id ORDER BY date DESC";
         } else {
-            $sql = "SELECT * FROM transactions WHERE user_id IS NULL ORDER BY date DESC";
+            // Belum login — tidak tampilkan transaksi apapun
+            echo json_encode([]);
+            $conn->close();
+            exit;
         }
 
         $result = $conn->query($sql);
@@ -63,9 +63,10 @@ switch ($method) {
         break;
 
     case 'POST':
-        $input = file_get_contents("php://input");
+        // Pakai cache dari db_connect.php agar php://input tidak dibaca dua kali
+        $input = $GLOBALS['_raw_input'] ?? file_get_contents("php://input");
         $data = json_decode($input, true);
-        
+
         if (!$data) {
             $data = $_POST;
         }

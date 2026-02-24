@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UangBro — Kelola Keuanganmu</title>
+  <meta name="description" content="UangBro - Aplikasi pencatat keuangan pribadi." />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <!-- App CSS -->
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<!-- ════════════ SPLASH ════════════ -->
+<div id="splash-screen">
+  <div class="splash-content">
+    <div class="splash-logo">
+      <i class="bi bi-cash-coin"></i>
+    </div>
+    <h1>UangBro</h1>
+    <p>Kelola keuanganmu dengan mudah</p>
+    <div class="splash-loader">
+      <div class="loader-dot"></div>
+      <div class="loader-dot"></div>
+      <div class="loader-dot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ APP ROOT ════════════ -->
+<div id="app" style="display:none;">
+
+  <!-- ──── AUTH: LOGIN ──── -->
+  <div id="page-login" class="page auth-page" style="display:none;">
+    <div class="auth-bg-blur"></div>
+    <div class="auth-container">
+      <div class="auth-logo">
+        <div class="logo-circle">
+          <i class="bi bi-cash-coin"></i>
+        </div>
+        <h2>Selamat datang di<br><span class="text-primary">UangBro</span></h2>
+        <p>Masuk ke akun Anda untuk melanjutkan</p>
+      </div>
+      <div class="card auth-card">
+        <form id="form-login" novalidate autocomplete="off">
+          <div class="input-group mb-3">
+            <span class="input-icon"><i class="bi bi-person"></i></span>
+            <input id="login-username" type="text" placeholder="Username" autocomplete="username" required />
+          </div>
+          <div class="input-group mb-3">
+            <span class="input-icon"><i class="bi bi-lock"></i></span>
+            <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" required />
+            <button type="button" class="toggle-pass" data-target="login-password">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          <div class="form-link-right">
+            <a href="#" id="goto-forgot"><i class="bi bi-question-circle"></i> Lupa password?</a>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" id="btn-login">
+            <i class="bi bi-box-arrow-in-right"></i>
+            <span class="btn-text">Masuk</span>
+          </button>
+          <div id="login-error" class="form-error"></div>
+          <p class="auth-switch">Belum punya akun? <a href="#" id="goto-register"><strong>Daftar</strong></a></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──── AUTH: REGISTER ──── -->
+  <div id="page-register" class="page auth-page" style="display:none;">
+    <div class="auth-bg-blur"></div>
+    <div class="auth-container">
+      <div class="auth-logo">
+        <div class="logo-circle">
+          <i class="bi bi-person-plus"></i>
+        </div>
+        <h2>Buat Akun <span class="text-primary">UangBro</span></h2>
+        <p>Isi data di bawah untuk membuat akun baru</p>
+      </div>
+      <div class="card auth-card">
+        <form id="form-register" novalidate>
+          <div class="input-group mb-3">
+            <span class="input-icon"><i class="bi bi-person"></i></span>
+            <input id="reg-username" type="text" placeholder="Username" required />
+          </div>
+          <div class="input-group mb-3">
+            <span class="input-icon"><i class="bi bi-envelope"></i></span>
+            <input id="reg-email" type="email" placeholder="Email" required />
+          </div>
+          <div class="input-group mb-3">
+            <span class="input-icon"><i class="bi bi-lock"></i></span>
+            <input id="reg-password" type="password" placeholder="Password (min. 6 karakter)" required />
+            <button type="button" class="toggle-pass" data-target="reg-password">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" id="btn-register">
+            <i class="bi bi-person-check"></i>
+            <span class="btn-text">Daftar Sekarang</span>
+          </button>
+          <div id="register-error" class="form-error"></div>
+          <p class="auth-switch">Sudah punya akun? <a href="#" id="goto-login"><strong>Masuk</strong></a></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──── AUTH: FORGOT PASSWORD ──── -->
+  <div id="page-forgot" class="page auth-page" style="display:none;">
+    <div class="auth-bg-blur"></div>
+    <div class="auth-container">
+      <div class="auth-logo">
+        <div class="logo-circle">
+          <i class="bi bi-shield-lock"></i>
+        </div>
+        <h2>Lupa <span class="text-primary">Password</span></h2>
+        <p>Masukkan username untuk mereset password Anda</p>
+      </div>
+      <div class="card auth-card">
+        <form id="form-forgot" novalidate>
+          <div class="input-group mb-3">
+            <span class="input-icon"><i class="bi bi-person"></i></span>
+            <input id="forgot-username" type="text" placeholder="Username" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">
+            <i class="bi bi-send"></i> Kirim Reset Password
+          </button>
+          <div id="forgot-msg" class="form-error"></div>
+          <p class="auth-switch">
+            <a href="#" id="goto-login-from-forgot">
+              <i class="bi bi-arrow-left"></i> Kembali ke Login
+            </a>
+          </p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       MAIN APP
+       ════════════════════════════════════════ -->
+  <div id="page-app" class="page" style="display:none;">
+
+    <!-- AppBar -->
+    <header class="appbar" id="appbar">
+      <div class="appbar-left">
+        <i class="bi bi-cash-coin appbar-logo"></i>
+        <span class="appbar-title" id="appbar-title">UangBro</span>
+      </div>
+      <div class="appbar-right" id="appbar-actions">
+        <button class="icon-btn" id="btn-notif" title="Notifikasi">
+          <i class="bi bi-bell"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="content" id="main-content">
+
+      <!-- ── TAB: HOME ── -->
+      <div id="tab-home" class="tab-content">
+
+        <!-- Greeting -->
+        <div class="greeting-row">
+          <div>
+            <div class="greeting-sub">Selamat datang kembali 👋</div>
+            <div class="greeting-name" id="welcome-name">Pengguna</div>
+          </div>
+          <div class="avatar-sm" id="home-avatar">U</div>
+        </div>
+
+        <!-- Balance Card -->
+        <div class="balance-card card glass-card">
+          <div class="balance-card-header">
+            <span class="balance-label">Total Saldo</span>
+            <button class="icon-btn-ghost" id="toggle-balance" title="Tampilkan / Sembunyikan">
+              <i class="bi bi-eye" id="toggle-balance-icon"></i>
+            </button>
+          </div>
+          <div class="balance-amount" id="balance-amount">Rp 0</div>
+          <div class="balance-divider"></div>
+          <div class="balance-actions">
+            <button class="btn btn-income" id="btn-add-income">
+              <i class="bi bi-arrow-down-circle"></i> Pemasukan
+            </button>
+            <button class="btn btn-expense" id="btn-add-expense">
+              <i class="bi bi-arrow-up-circle"></i> Pengeluaran
+            </button>
+          </div>
+        </div>
+
+        <!-- Monthly Summary -->
+        <div class="summary-grid">
+          <div class="summary-card card">
+            <div class="summary-icon income-bg">
+              <i class="bi bi-arrow-down-circle-fill"></i>
+            </div>
+            <div class="summary-info">
+              <small class="muted">Pemasukan Bulan Ini</small>
+              <strong id="monthly-income" class="income-text">Rp 0</strong>
+            </div>
+          </div>
+          <div class="summary-card card">
+            <div class="summary-icon expense-bg">
+              <i class="bi bi-arrow-up-circle-fill"></i>
+            </div>
+            <div class="summary-info">
+              <small class="muted">Pengeluaran Bulan Ini</small>
+              <strong id="monthly-expense" class="expense-text">Rp 0</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Summary -->
+        <div class="summary-grid">
+          <div class="mini-card card">
+            <div class="mini-icon income-bg">
+              <i class="bi bi-calendar-check"></i>
+            </div>
+            <div>
+              <small class="muted">Masuk Hari Ini</small>
+              <div id="daily-income" class="income-text fw600">Rp 0</div>
+            </div>
+          </div>
+          <div class="mini-card card">
+            <div class="mini-icon expense-bg">
+              <i class="bi bi-calendar-x"></i>
+            </div>
+            <div>
+              <small class="muted">Keluar Hari Ini</small>
+              <div id="daily-expense" class="expense-text fw600">Rp 0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="section-header">
+          <h3><i class="bi bi-clock-history"></i> Transaksi Terakhir</h3>
+          <button class="btn-link" id="btn-see-all">Lihat Semua <i class="bi bi-chevron-right"></i></button>
+        </div>
+        <div id="recent-tx-list" class="tx-list"></div>
+
+      </div><!-- /tab-home -->
+
+
+      <!-- ── TAB: HISTORY ── -->
+      <div id="tab-history" class="tab-content" style="display:none;">
+
+        <!-- Toolbar -->
+        <div class="history-toolbar">
+          <div class="input-group search-group">
+            <span class="input-icon"><i class="bi bi-search"></i></span>
+            <input id="search-input" type="text" placeholder="Cari transaksi..." />
+            <button type="button" class="toggle-pass" id="btn-clear-search" style="display:none;">
+              <i class="bi bi-x-circle"></i>
+            </button>
+          </div>
+          <button class="icon-btn" id="btn-export-csv" title="Export CSV">
+            <i class="bi bi-download"></i>
+          </button>
+        </div>
+
+        <!-- Period Selector -->
+        <div class="period-selector" id="period-selector">
+          <button class="period-btn active" data-period="month">Bulan Ini</button>
+          <button class="period-btn" data-period="week">Minggu Ini</button>
+          <button class="period-btn" data-period="3month">3 Bulan</button>
+          <button class="period-btn" data-period="6month">6 Bulan</button>
+          <button class="period-btn" data-period="year">Tahun Ini</button>
+        </div>
+
+        <!-- Comparison Card -->
+        <div class="comparison-card card" id="comparison-card"></div>
+
+        <!-- Top Categories -->
+        <div class="top-cat-card card" id="top-categories"></div>
+
+        <!-- Filter + Sort -->
+        <div class="filter-row">
+          <div class="filter-chips">
+            <button class="chip active" data-filter="all">Semua</button>
+            <button class="chip income-chip" data-filter="income">
+              <i class="bi bi-arrow-down-circle"></i> Pemasukan
+            </button>
+            <button class="chip expense-chip" data-filter="expense">
+              <i class="bi bi-arrow-up-circle"></i> Pengeluaran
+            </button>
+          </div>
+          <select id="sort-select" class="sort-select">
+            <option value="date_desc">Terbaru</option>
+            <option value="date_asc">Terlama</option>
+            <option value="amount_desc">Nominal ↓</option>
+            <option value="amount_asc">Nominal ↑</option>
+          </select>
+        </div>
+
+        <div id="history-tx-list" class="tx-list"></div>
+
+      </div><!-- /tab-history -->
+
+
+      <!-- ── TAB: TARGETS ── -->
+      <div id="tab-targets" class="tab-content" style="display:none;">
+        <div class="empty-state">
+          <i class="bi bi-bullseye empty-icon"></i>
+          <h3>Target Tabungan</h3>
+          <p>Atur target keuangan Anda dan pantau progresnya di sini.</p>
+          <button class="btn btn-primary" id="btn-add-target">
+            <i class="bi bi-plus-circle"></i> Tambah Target
+          </button>
+        </div>
+        <div id="targets-list" class="tx-list mt-3"></div>
+      </div>
+
+
+      <!-- ── TAB: PROFILE ── -->
+      <div id="tab-profile" class="tab-content" style="display:none;">
+
+        <div class="profile-hero card glass-card">
+          <div class="avatar-wrap">
+            <div class="avatar" id="profile-avatar">U</div>
+            <button class="avatar-edit-btn" id="btn-edit-profile-photo" title="Ganti foto">
+              <i class="bi bi-camera"></i>
+            </button>
+          </div>
+          <div class="profile-info">
+            <h2 id="profile-username">Pengguna</h2>
+            <p id="profile-email" class="muted"><i class="bi bi-envelope"></i> -</p>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="section-label">Akun</div>
+          <div class="settings-list card">
+            <button class="settings-item" id="btn-edit-profile">
+              <span class="settings-icon"><i class="bi bi-person-gear"></i></span>
+              <span class="settings-label">Edit Profile</span>
+              <i class="bi bi-chevron-right chevron"></i>
+            </button>
+            <button class="settings-item" id="btn-change-password">
+              <span class="settings-icon"><i class="bi bi-key"></i></span>
+              <span class="settings-label">Ubah Password</span>
+              <i class="bi bi-chevron-right chevron"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="section-label">Data & Privasi</div>
+          <div class="settings-list card">
+            <button class="settings-item" id="btn-manage-categories">
+              <span class="settings-icon"><i class="bi bi-tags"></i></span>
+              <span class="settings-label">Kelola Kategori</span>
+              <i class="bi bi-chevron-right chevron"></i>
+            </button>
+            <button class="settings-item" id="btn-profile-export">
+              <span class="settings-icon income-icon"><i class="bi bi-file-earmark-arrow-down"></i></span>
+              <span class="settings-label">Export CSV</span>
+              <i class="bi bi-chevron-right chevron"></i>
+            </button>
+            <button class="settings-item danger" id="btn-reset-data">
+              <span class="settings-icon danger-icon"><i class="bi bi-trash3"></i></span>
+              <span class="settings-label">Reset Semua Data</span>
+              <i class="bi bi-chevron-right chevron"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-list card">
+            <button class="settings-item danger" id="btn-logout">
+              <span class="settings-icon danger-icon"><i class="bi bi-box-arrow-left"></i></span>
+              <span class="settings-label">Logout</span>
+              <i class="bi bi-chevron-right chevron"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="app-version muted text-center">UangBro Web v1.0 · 2024</div>
+
+      </div><!-- /tab-profile -->
+
+    </main><!-- /content -->
+
+    <!-- ════════ BOTTOM NAV ════════ -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="nav-item active" data-tab="home" id="nav-home">
+        <i class="bi bi-house-door nav-icon"></i>
+        <i class="bi bi-house-door-fill nav-icon-active"></i>
+        <span>Home</span>
+      </button>
+      <button class="nav-item" data-tab="history" id="nav-history">
+        <i class="bi bi-clock-history nav-icon"></i>
+        <i class="bi bi-clock-history nav-icon-active"></i>
+        <span>Riwayat</span>
+      </button>
+
+      <!-- FAB -->
+      <div class="nav-fab-wrap">
+        <button class="fab-btn" id="fab-add" title="Tambah Transaksi">
+          <i class="bi bi-plus-lg"></i>
+        </button>
+      </div>
+
+      <button class="nav-item" data-tab="targets" id="nav-targets">
+        <i class="bi bi-bullseye nav-icon"></i>
+        <i class="bi bi-bullseye nav-icon-active"></i>
+        <span>Target</span>
+      </button>
+      <button class="nav-item" data-tab="profile" id="nav-profile">
+        <i class="bi bi-person nav-icon"></i>
+        <i class="bi bi-person-fill nav-icon-active"></i>
+        <span>Profil</span>
+      </button>
+    </nav>
+
+  </div><!-- /page-app -->
+
+</div><!-- /app -->
+
+
+<!-- ════════════ MODALS ════════════ -->
+
+<!-- Transaction Form Modal -->
+<div id="modal-transaction" class="modal-overlay" style="display:none;">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 id="modal-tx-title">Tambah Transaksi</h3>
+
+    <form id="form-transaction" novalidate>
+      <input type="hidden" id="tx-id" />
+
+      <!-- Type Toggle -->
+      <div class="segment-control mb-3">
+        <button type="button" class="segment" data-type="income">
+          <i class="bi bi-arrow-down-circle"></i> Pemasukan
+        </button>
+        <button type="button" class="segment active" data-type="expense">
+          <i class="bi bi-arrow-up-circle"></i> Pengeluaran
+        </button>
+      </div>
+
+      <!-- Amount -->
+      <label class="field-label"><i class="bi bi-cash"></i> Nominal</label>
+      <div class="input-group mb-3">
+        <span class="input-icon">Rp</span>
+        <input id="tx-amount" type="number" placeholder="0" min="0" step="1" required />
+      </div>
+
+      <!-- Category -->
+      <label class="field-label"><i class="bi bi-tag"></i> Kategori</label>
+      <div class="input-group mb-3">
+        <span class="input-icon"><i class="bi bi-grid-3x3-gap"></i></span>
+        <select id="tx-category" required>
+          <option value="">Pilih Kategori</option>
+        </select>
+      </div>
+
+      <!-- Description -->
+      <label class="field-label"><i class="bi bi-chat-left-text"></i> Deskripsi <span class="muted">(opsional)</span></label>
+      <div class="input-group mb-3">
+        <span class="input-icon"><i class="bi bi-pencil"></i></span>
+        <input id="tx-description" type="text" placeholder="Tulis deskripsi..." />
+      </div>
+
+      <!-- Date -->
+      <label class="field-label"><i class="bi bi-calendar3"></i> Tanggal</label>
+      <div class="input-group mb-3">
+        <span class="input-icon"><i class="bi bi-calendar-date"></i></span>
+        <input id="tx-date" type="date" required />
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline w-50" id="btn-cancel-tx">
+          <i class="bi bi-x"></i> Batal
+        </button>
+        <button type="submit" class="btn btn-primary w-50">
+          <i class="bi bi-check-lg"></i> Simpan
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div id="modal-confirm" class="modal-overlay modal-center" style="display:none;">
+  <div class="modal-dialog">
+    <div class="modal-dialog-icon" id="confirm-icon">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    <h3 id="confirm-title">Konfirmasi</h3>
+    <p id="confirm-message">Apakah Anda yakin?</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btn-confirm-cancel">Batal</button>
+      <button class="btn btn-danger" id="btn-confirm-ok">
+        <i class="bi bi-check-lg"></i> Hapus
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div id="modal-profile" class="modal-overlay modal-center" style="display:none;">
+  <div class="modal-dialog">
+    <h3><i class="bi bi-person-gear"></i> Edit Profile</h3>
+    <form id="form-profile" novalidate>
+      <label class="field-label">Username</label>
+      <div class="input-group mb-3">
+        <span class="input-icon"><i class="bi bi-person"></i></span>
+        <input id="edit-username" type="text" placeholder="Username baru" required />
+      </div>
+      <div id="profile-edit-error" class="form-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" id="btn-cancel-profile">Batal</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg"></i> Simpan
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div id="modal-password" class="modal-overlay modal-center" style="display:none;">
+  <div class="modal-dialog">
+    <h3><i class="bi bi-key"></i> Ubah Password</h3>
+    <form id="form-password" novalidate>
+      <label class="field-label">Username</label>
+      <div class="input-group mb-3">
+        <span class="input-icon"><i class="bi bi-person"></i></span>
+        <input id="pass-username" type="text" placeholder="Username" required />
+      </div>
+      <label class="field-label">Password Baru</label>
+      <div class="input-group mb-3">
+        <span class="input-icon"><i class="bi bi-lock"></i></span>
+        <input id="pass-new" type="password" placeholder="Min. 6 karakter" required />
+        <button type="button" class="toggle-pass" data-target="pass-new"><i class="bi bi-eye"></i></button>
+      </div>
+      <label class="field-label">Konfirmasi Password</label>
+      <div class="input-group mb-3">
+        <span class="input-icon"><i class="bi bi-lock-fill"></i></span>
+        <input id="pass-confirm" type="password" placeholder="Ulangi password baru" required />
+        <button type="button" class="toggle-pass" data-target="pass-confirm"><i class="bi bi-eye"></i></button>
+      </div>
+      <div id="pass-error" class="form-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" id="btn-cancel-pass">Batal</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg"></i> Simpan
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Categories Modal -->
+<div id="modal-categories" class="modal-overlay modal-center" style="display:none;">
+  <div class="modal-dialog">
+    <h3><i class="bi bi-tags"></i> Kelola Kategori</h3>
+    <div class="input-group mb-2">
+      <span class="input-icon"><i class="bi bi-plus"></i></span>
+      <input id="new-category-input" type="text" placeholder="Nama kategori baru..." />
+      <button type="button" class="btn btn-primary btn-sm" id="btn-add-category" style="margin:4px 4px 4px 0;">Tambah</button>
+    </div>
+    <div id="categories-list" class="categories-list"></div>
+    <div class="modal-actions" style="margin-top:12px;">
+      <button class="btn btn-outline btn-full" id="btn-close-categories">
+        <i class="bi bi-x"></i> Tutup
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast" style="display:none;"></div>
+
+<script src="assets/js/app.js?v=20260224"></script>
+</body>
+</html>

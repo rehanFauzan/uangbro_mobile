@@ -1,0 +1,111 @@
+/* Minimal styles for the website_mode UI */
+:root {
+  --bg: #0f1221;
+  --surface: #141625;
+  --neutral-high: #ececf6;
+  --neutral-low: #9aa0b4;
+  --success: #2dbe6a;
+  --danger: #ef5350;
+  --radius: 12px;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--neutral-high);
+}
+header {
+  margin-bottom: 18px;
+}
+h1 {
+  font-size: 20px;
+  margin: 0;
+}
+main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+section {
+  background: var(--surface);
+  padding: 16px;
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(12, 16, 30, 0.6);
+}
+label {
+  display: block;
+  margin-bottom: 8px;
+}
+input[type="text"],
+input[type="number"],
+input[type="date"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #e6e9ef;
+  border-radius: 6px;
+}
+button {
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 0;
+  cursor: pointer;
+}
+.target-item {
+  padding: 10px;
+  border-bottom: 1px solid #f0f2f5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.target-item:last-child {
+  border-bottom: 0;
+}
+.target-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+.actions button {
+  margin-left: 8px;
+  background: #e2e8f0;
+  color: #111;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+@media (max-width: 800px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+}
+/* Dark theme styles to match Flutter mobile app (DesignTokens) */
+nav#top-nav {
+  color: var(--neutral-low);
+  font-size: 14px;
+}
+.balances {
+  font-size: 14px;
+  color: var(--neutral-high);
+  margin-bottom: 6px;
+}
+#form-transaction {
+  background: transparent;
+}
+#tx-list {
+  margin-top: 6px;
+}
+@media (min-width: 900px) {
+  main {
+    grid-template-columns: 1fr 2fr;
+  }
+}

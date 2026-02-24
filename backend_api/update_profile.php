@@ -12,22 +12,11 @@ if ($method == 'OPTIONS') {
     exit();
 }
 
-$input = file_get_contents('php://input');
+$input = $GLOBALS['_raw_input'] ?? file_get_contents('php://input');
 $data = json_decode($input, true) ?: $_POST;
 
-// Normalize headers to be case-insensitive
-$headers = array_change_key_case(getallheaders(), CASE_LOWER);
-$token = null;
-if (isset($headers['authorization'])) {
-    $auth = $headers['authorization'];
-    if (stripos($auth, 'bearer ') === 0) {
-        $token = substr($auth, 7);
-    } else {
-        $token = $auth;
-    }
-} elseif (isset($headers['x-api-token'])) {
-    $token = $headers['x-api-token'];
-}
+// Baca token via helper (URL param > $_SERVER > headers)
+$token = getToken();
 
 if (empty($token)) {
     echo json_encode(["status" => "error", "message" => "Unauthorized"]);

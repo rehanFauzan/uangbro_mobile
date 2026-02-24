@@ -12,7 +12,7 @@ if ($method == 'OPTIONS') {
     exit();
 }
 
-$input = file_get_contents('php://input');
+$input = $GLOBALS['_raw_input'] ?? file_get_contents('php://input');
 $data = json_decode($input, true) ?: $_POST;
 
 if (!isset($data['username']) || !isset($data['password'])) {

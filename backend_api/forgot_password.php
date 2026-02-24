@@ -7,7 +7,7 @@ header('Access-Control-Allow-Headers: Content-Type');
 include 'db_connect.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode($GLOBALS['_raw_input'] ?? file_get_contents('php://input'), true);
     $username = isset($input['username']) ? trim($input['username']) : '';
     $action = isset($input['action']) ? $input['action'] : 'request';
 
